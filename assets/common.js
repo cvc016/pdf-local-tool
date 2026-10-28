@@ -25,6 +25,8 @@ export function loadPdfjs() {
     return m;
   }));
 }
+// Warm up libraries after page load so tools keep working if the network drops.
+export function preload(...fns) { const go = () => fns.forEach((f) => f().catch(() => {})); ('requestIdleCallback' in window) ? requestIdleCallback(go, { timeout: 3000 }) : setTimeout(go, 1500); }
 export async function openPdfjs(bytes) {
   const pdfjs = await loadPdfjs();
   return pdfjs.getDocument({

@@ -1,4 +1,6 @@
 import { $, $$, setupDrop, isPdf, readBytes, openPdfjs, lazyThumbs, fmtSize, makeSortable, loadPdfLib, openPdfLib, busy, downloadBlob, setStatus, toast, baseName } from './common.js';
+import * as C from './common.js';
+C.preload(C.loadPdfLib, C.loadPdfjs);
 
 const zone = $('#drop'), input = $('#file'), work = $('#work'), grid = $('#grid'), status = $('#status'), go = $('#go');
 let src = null, pdf = null;
