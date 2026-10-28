@@ -4,6 +4,7 @@ import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BRAND, pages as toolPages, home, why as WHY, how as HOW } from './content.mjs';
+import { posts, BLOG_DATE } from './blog.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = 'https://cvc016.github.io/pdf-local-tool/';
@@ -90,8 +91,8 @@ const TOOLS = {
   heic: { js: 'img2pdf.js', html: () => img(true) },
 };
 
-function layout({ slug, title, desc, h1, lead, main, ld = [], js, suffix, noindex, badge = true }) {
-  const root = slug ? '../' : './';
+function layout({ slug, title, desc, h1, lead, main, ld = [], js, suffix, noindex, badge = true, ogType = 'website' }) {
+  const root = slug ? '../'.repeat(slug.split('/').length) : './';
   const url = BASE + (slug ? slug + '/' : '');
   return `<!doctype html>
 <html lang="zh-Hant-TW">
@@ -103,7 +104,7 @@ function layout({ slug, title, desc, h1, lead, main, ld = [], js, suffix, noinde
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
 ${noindex ? '<meta name="robots" content="noindex,follow">\n' : ''}<link rel="canonical" href="${url}">
-<meta property="og:type" content="website">
+<meta property="og:type" content="${ogType}">
 <meta property="og:locale" content="zh_TW">
 <meta property="og:site_name" content="${BRAND}">
 <meta property="og:title" content="${esc(title)}">
@@ -131,7 +132,7 @@ ${ld.length ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>
   <div style="max-width:520px">
     <strong>${BRAND}</strong>
     <p><strong>檔案不會上傳：</strong>本站所有 PDF 與圖片處理都在您的瀏覽器中完成，不會傳送到任何伺服器；不使用 Cookie、不做追蹤分析、不載入第三方腳本。</p>
-    <p><a href="${root}privacy/">隱私權政策</a> · <a href="${root}about/">關於與聯絡</a> · <a href="${root}remove-ads/">移除廣告</a> · <a href="${root}THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="${REPO}" rel="noopener">原始碼</a></p>
+    <p><a href="${root}blog/">教學文章</a> · <a href="${root}privacy/">隱私權政策</a> · <a href="${root}about/">關於與聯絡</a> · <a href="${root}remove-ads/">移除廣告</a> · <a href="${root}THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="${REPO}" rel="noopener">原始碼</a></p>
   </div>
   <div><strong>PDF 工具</strong><ul>${toolPages.map((t) => `<li><a href="${root}${t.slug}/">${t.nav}</a></li>`).join('')}</ul></div>
 </div></footer>
@@ -252,6 +253,45 @@ out.push(['remove-ads/index.html', layout({ slug: 'remove-ads', title: `移除�
 <p class="hint">授權狀態只儲存在您瀏覽器的 localStorage；換瀏覽器或清除網站資料後需重新輸入。</p>
 </div>` })]);
 
+// Blog / tutorials (no ad slot). Article + HowTo + FAQPage + BreadcrumbList JSON-LD.
+const toolBySlug = Object.fromEntries(toolPages.map((t) => [t.slug, t]));
+const org = { '@type': 'Organization', name: BRAND, url: BASE };
+const blogCrumbs = (items) => ({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+  { '@type': 'ListItem', position: 1, name: BRAND, item: BASE }, { '@type': 'ListItem', position: 2, name: '教學文章', item: `${BASE}blog/` },
+  ...items.map(([name, slug], i) => ({ '@type': 'ListItem', position: 3 + i, name, item: `${BASE}${slug}/` }))] });
+const postBySlug = Object.fromEntries(posts.map((p) => [p.slug, p]));
+for (const p of posts) {
+  const slug = `blog/${p.slug}`, url = `${BASE}${slug}/`;
+  if (!toolBySlug[p.tool]) throw new Error(`blog ${p.slug}: unknown tool ${p.tool}`);
+  const main = `<article class="card prose">
+    ${p.answer}
+    <div class="actions"><a class="btn primary lg" href="../../${p.tool}/">開啟「${p.toolName}」工具</a></div>
+    <h2>${p.stepsTitle}</h2>
+    <ol class="steps">${p.steps.map((s) => `<li>${s}</li>`).join('')}</ol>
+    ${p.mobile}
+    ${p.body}
+    ${faqHtml(p.faq)}
+    <h2>延伸閱讀</h2>
+    <ul class="links">${p.related.map((r) => `<li><a href="../${r}/">${postBySlug[r].title}</a></li>`).join('')}
+    <li><a href="../../${p.tool}/">直接使用「${p.toolName}」工具</a></li>
+    <li><a href="../">所有教學文章</a></li></ul>
+  </article>`;
+  const ld = [
+    { '@context': 'https://schema.org', '@type': 'Article', headline: p.title, description: p.desc, inLanguage: 'zh-TW', url,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url }, datePublished: p.date || BLOG_DATE, dateModified: p.updated || p.date || BLOG_DATE,
+      author: org, publisher: org, about: { '@type': 'WebApplication', name: `${p.toolName}｜${BRAND}`, url: `${BASE}${p.tool}/` } },
+    { '@context': 'https://schema.org', '@type': 'HowTo', name: p.stepsTitle, inLanguage: 'zh-TW',
+      tool: [{ '@type': 'HowToTool', name: `${BRAND}「${p.toolName}」（${BASE}${p.tool}/）` }],
+      step: p.steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, text: strip(s) })) },
+    faqLd(p.faq), blogCrumbs([[p.title, slug]]),
+  ];
+  out.push([`${slug}/index.html`, layout({ slug, title: `${p.title}｜${BRAND}`, desc: p.desc, h1: p.h1, lead: '', main, ld, badge: false, ogType: 'article' })]);
+}
+out.push(['blog/index.html', layout({ slug: 'blog', title: `PDF 教學文章｜${BRAND}`, desc: `${BRAND} 教學文章：手機合併 PDF、iPhone 照片轉 PDF、刪除 PDF 頁面、PDF 旋轉後儲存等操作說明，全部在瀏覽器本機處理、檔案不上傳。`, h1: 'PDF 教學文章', lead: '一步一步說明常見的 PDF 操作，手機與電腦都適用。', badge: false,
+  ld: [{ '@context': 'https://schema.org', '@type': 'Blog', name: `${BRAND} 教學文章`, url: `${BASE}blog/`, inLanguage: 'zh-TW', publisher: org,
+    blogPost: posts.map((p) => ({ '@type': 'BlogPosting', headline: p.title, url: `${BASE}blog/${p.slug}/`, datePublished: p.date || BLOG_DATE })) }, blogCrumbs([])],
+  main: `<section class="tiles" aria-label="文章列表">${posts.map((p) => `<a class="tile" href="${p.slug}/"><h2>${p.title}</h2><p>${p.desc}</p></a>`).join('')}</section>` })]);
+
 // Old URLs from the first release -> redirect stubs (not in sitemap).
 const REDIRECTS = { 'pdf-merge': 'merge-pdf', 'pdf-split': 'split-pdf', 'pdf-organize': 'reorder-pdf-pages', 'image-to-pdf': 'jpg-to-pdf' };
 for (const [from, to] of Object.entries(REDIRECTS)) {
@@ -260,10 +300,10 @@ for (const [from, to] of Object.entries(REDIRECTS)) {
 
 for (const [f, html] of out) { const p = join(ROOT, f); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, html); }
 
-const indexed = ['', ...toolPages.map((p) => p.slug + '/'), 'privacy/', 'about/'];
+const indexed = ['', ...toolPages.map((p) => p.slug + '/'), 'blog/', ...posts.map((p) => `blog/${p.slug}/`), 'privacy/', 'about/'];
 writeFileSync(join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${indexed.map((s) => `  <url><loc>${BASE}${s}</loc><lastmod>${LASTMOD}</lastmod><priority>${s === '' ? '1.0' : /privacy|about/.test(s) ? '0.3' : '0.9'}</priority></url>`).join('\n')}
+${indexed.map((s) => `  <url><loc>${BASE}${s}</loc><lastmod>${LASTMOD}</lastmod><priority>${s === '' ? '1.0' : /privacy|about/.test(s) ? '0.3' : /^blog\//.test(s) ? '0.7' : '0.9'}</priority></url>`).join('\n')}
 </urlset>
 `);
 writeFileSync(join(ROOT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${BASE}sitemap.xml\n`);

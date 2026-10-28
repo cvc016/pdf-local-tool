@@ -12,6 +12,7 @@
 - 刪除頁面（含自動標記空白頁）`/delete-pdf-pages/`
 - PDF 旋轉 `/rotate-pdf/`、頁面排序 `/reorder-pdf-pages/`
 - JPG／圖片／照片轉 PDF `/jpg-to-pdf/`；HEIC 轉 PDF `/heic-to-pdf/`（HEIC 僅在瀏覽器原生支援時，如 Safari）
+- 教學文章 `/blog/`（內容在 `scripts/blog.mjs`；Article／HowTo／FAQPage／BreadcrumbList 結構化資料，無廣告版位）
 - 隱私權政策 `/privacy/`、關於與聯絡 `/about/`、移除廣告授權 `/remove-ads/`（noindex）
 - 舊網址 `/pdf-merge/` 等為轉址頁（noindex）
 

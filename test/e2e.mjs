@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 import { PDFDocument } from 'pdf-lib';
 import { unzipSync } from 'fflate';
+import { posts } from '../scripts/blog.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'test', 'out');
@@ -83,6 +84,33 @@ try {
   for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'privacy/', 'about/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
     const r = await page.goto(BASE + s); ok(r.status() === 200, `GET ${s} → ${r.status()}`);
   }
+
+  // ---- BLOG: index + each post (structure, JSON-LD, tool link, no ad slot, length, wording)
+  await open('blog/');
+  ok((await page.$$('h1')).length === 1 && (await page.$$('.ad-slot')).length === 0, 'blog index: one h1, no ad slot');
+  for (const b of posts) {
+    await open(`blog/${b.slug}/`);
+    const info = await page.evaluate((tool) => {
+      const art = document.querySelector('article');
+      const text = art ? art.innerText : '';
+      const ld = Array.from(document.querySelectorAll('script[type="application/ld+json"]')).flatMap((s) => JSON.parse(s.textContent));
+      return { h1: document.querySelectorAll('h1').length, ads: document.querySelectorAll('.ad-slot').length,
+        types: ld.map((x) => x['@type']), cjk: (text.match(/[\u4e00-\u9fff]/g) || []).length,
+        toolLink: !!document.querySelector(`article a[href="../../${tool}/"]`), html: document.documentElement.outerHTML,
+        brokenLinks: Array.from(document.querySelectorAll('a[href^="../"]')).map((a) => a.href) };
+    }, b.tool);
+    ok(info.h1 === 1 && info.ads === 0, `blog ${b.slug}: one h1, no ad slot`);
+    ok(['Article', 'HowTo', 'FAQPage', 'BreadcrumbList'].every((t) => info.types.includes(t)), `blog ${b.slug}: JSON-LD ${info.types}`);
+    ok(info.toolLink, `blog ${b.slug}: links to tool ${b.tool}`);
+    ok(info.cjk >= 1200, `blog ${b.slug}: ${info.cjk} 字 (>= 1200)`);
+    ok(!/文檔|在線|最快|已服務/.test(info.html), `blog ${b.slug}: Taiwan wording, no unverified claims`);
+    for (const u of [...new Set(info.brokenLinks)].filter((u) => !/\.txt$/.test(u))) {
+      const st = await page.evaluate(async (x) => (await fetch(x)).status, u);
+      if (st !== 200) ok(false, `blog ${b.slug}: link ${u} → ${st}`);
+    }
+  }
+  const sm = await (await page.goto(BASE + 'sitemap.xml')).text();
+  ok(posts.every((b) => sm.includes(`blog/${b.slug}/`)) && sm.includes('/blog/<'), 'sitemap: blog index + posts listed');
 
   // ---- MERGE: add a, b; move b to top with ▲ ... then download
   await open('merge-pdf/');
