@@ -5,15 +5,12 @@ export const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
 const VENDOR = new URL('../vendor/', import.meta.url).href;
 
-// ---- ad-free placeholder (no payment code yet) ----
-// Future: a paid unlock would set this flag after verification.
+// ---- ad-free flag (set by assets/unlock.js after a license key is verified) ----
+export const AD_FREE_KEY = 'adFreeLicense';
 export function isAdFree() {
-  try { return localStorage.getItem('adFree') === '1'; } catch { return false; }
+  try { const v = JSON.parse(localStorage.getItem(AD_FREE_KEY) || 'null'); return !!(v && v.ok); } catch { return false; }
 }
 if (isAdFree()) document.documentElement.classList.add('ad-free');
-for (const b of $$('[data-remove-ads]')) {
-  b.addEventListener('click', (e) => { e.preventDefault(); toast('「移除廣告」付費方案即將推出，目前本站沒有任何廣告與追蹤。'); });
-}
 
 // ---- library loaders (lazy, local files only) ----
 let pdfLibP, pdfjsP, fflateP;
