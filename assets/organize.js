@@ -1,4 +1,4 @@
-import { $, $$, setupDrop, isPdf, readBytes, openPdfjs, lazyThumbs, fmtSize, makeSortable, loadPdfLib, openPdfLib, busy, downloadBlob, setStatus, toast, baseName } from './common.js';
+import { $, $$, setupDrop, isPdf, readBytes, openPdfjs, lazyThumbs, renderThumb, fmtSize, makeSortable, loadPdfLib, openPdfLib, busy, downloadBlob, setStatus, toast, baseName } from './common.js';
 import * as C from './common.js';
 C.preload(C.loadPdfLib, C.loadPdfjs);
 
@@ -58,13 +58,30 @@ grid.addEventListener('click', (e) => {
 });
 makeSortable(grid, { item: '.pg', handle: '.handle', axis: 'x', onChange: () => setStatus(status, '') });
 
-$('#rotAllL').addEventListener('click', () => { state.forEach((s) => (s.rot -= 90)); $$('.pg', grid).forEach(paint); });
-$('#rotAllR').addEventListener('click', () => { state.forEach((s) => (s.rot += 90)); $$('.pg', grid).forEach(paint); });
-$('#reverse').addEventListener('click', () => { $$('.pg', grid).reverse().forEach((d) => grid.appendChild(d)); });
-$('#resetAll').addEventListener('click', () => {
+const on = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+on('rotAllL', () => { state.forEach((s) => (s.rot -= 90)); $$('.pg', grid).forEach(paint); });
+on('rotAllR', () => { state.forEach((s) => (s.rot += 90)); $$('.pg', grid).forEach(paint); });
+on('reverse', () => { $$('.pg', grid).reverse().forEach((d) => grid.appendChild(d)); });
+on('resetAll', () => {
   state.forEach((s) => { s.rot = 0; s.del = false; });
   $$('.pg', grid).sort((a, b) => a.dataset.idx - b.dataset.idx).forEach((d) => { grid.appendChild(d); paint(d); });
   summary();
+});
+// Mark (nearly) blank pages for deletion: render small and count non-white pixels.
+on('blank', async () => {
+  const btn = document.getElementById('blank');
+  await busy(btn, '偵測中…', async () => {
+    let n = 0;
+    for (let i = 0; i < state.length; i++) {
+      const c = await renderThumb(pdf, i + 1, 80);
+      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      let ink = 0;
+      for (let k = 0; k < d.length; k += 4) if (d[k] < 235 || d[k + 1] < 235 || d[k + 2] < 235) ink++;
+      if (ink / (d.length / 4) < 0.003) { state[i].del = true; n++; }
+    }
+    $$('.pg', grid).forEach(paint); summary();
+    toast(n ? `已標記 ${n} 個空白頁為刪除，可再按 ↩ 還原。` : '沒有找到空白頁。');
+  });
 });
 $('#reset').addEventListener('click', () => { if (pdf) pdf.destroy(); pdf = null; grid.innerHTML = ''; work.classList.add('hidden'); zone.classList.remove('hidden'); });
 
@@ -81,7 +98,7 @@ go.addEventListener('click', () => busy(go, '處理中…', async () => {
       out.addPage(p);
     });
     const bytes = await out.save();
-    downloadBlob(bytes, `${baseName(src.file.name)}_已整理.pdf`);
+    downloadBlob(bytes, `${baseName(src.file.name)}_${document.body.dataset.suffix || '已整理'}.pdf`);
     setStatus(status, `✓ 完成！共 ${order.length} 頁（${fmtSize(bytes.length)}），已開始下載。`, 'ok');
   } catch (e) { setStatus(status, e.message || '處理失敗', 'err'); toast(e.message || '處理失敗', true); }
 }));

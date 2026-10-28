@@ -8,6 +8,9 @@ const isImg = (f) => /^image\//.test(f.type) || /\.(jpe?g|png|heic|heif|webp|gif
 const isHeic = (f) => /hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name);
 
 setupDrop(zone, input, add, isImg);
+// HEIC is decoded natively only by some browsers (mainly Safari); warn elsewhere.
+const heicNote = document.getElementById('heicNote');
+if (heicNote && !/^((?!chrome|crios|fxios|edg|android).)*safari/i.test(navigator.userAgent)) heicNote.classList.remove('hidden');
 setupDrop($('#more'), $('#file2'), add, isImg);
 
 function loadImg(url) {
