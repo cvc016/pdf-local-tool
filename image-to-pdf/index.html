@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' blob: data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>圖片轉 PDF – JPG、PNG、HEIC 轉 PDF，檔案不上傳｜PDF 本機工具</title>
+<meta name="description" content="免費圖片轉 PDF 工具：將 JPG、PNG 照片或掃描圖檔合併轉成 PDF，可調整順序、紙張大小與邊界。iPhone 照片也能轉。在瀏覽器本機處理，檔案不會上傳。">
+<link rel="canonical" href="https://cvc016.github.io/pdf-local-tool/image-to-pdf/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:site_name" content="PDF 本機工具">
+<meta property="og:title" content="圖片轉 PDF – JPG、PNG、HEIC 轉 PDF，檔案不上傳｜PDF 本機工具">
+<meta property="og:description" content="免費圖片轉 PDF 工具：將 JPG、PNG 照片或掃描圖檔合併轉成 PDF，可調整順序、紙張大小與邊界。iPhone 照片也能轉。在瀏覽器本機處理，檔案不會上傳。">
+<meta property="og:url" content="https://cvc016.github.io/pdf-local-tool/image-to-pdf/">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="modulepreload" href="../assets/common.js">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"圖片轉 PDF｜PDF 本機工具","url":"https://cvc016.github.io/pdf-local-tool/image-to-pdf/","description":"免費圖片轉 PDF 工具：將 JPG、PNG 照片或掃描圖檔合併轉成 PDF，可調整順序、紙張大小與邊界。iPhone 照片也能轉。在瀏覽器本機處理，檔案不會上傳。","applicationCategory":"UtilitiesApplication","operatingSystem":"Any（網頁瀏覽器）","inLanguage":"zh-TW","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"}},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"iPhone 的 HEIC 照片可以轉嗎？","acceptedAnswer":{"@type":"Answer","text":"在 iPhone 上用 Safari 選取照片時，系統通常會自動轉成 JPG，可直接使用。若在電腦上使用 HEIC 檔，需瀏覽器本身支援（例如 Mac 的 Safari）；Chrome 等瀏覽器目前無法讀取 HEIC，請先轉成 JPG。"}},{"@type":"Question","name":"照片方向會跑掉嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具會依照片的 EXIF 方向資訊自動轉正。"}},{"@type":"Question","name":"檔案會上傳嗎？","acceptedAnswer":{"@type":"Answer","text":"不會，所有處理都在您的瀏覽器中完成。"}}]},{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"PDF 本機工具","item":"https://cvc016.github.io/pdf-local-tool/"},{"@type":"ListItem","position":2,"name":"圖片轉 PDF","item":"https://cvc016.github.io/pdf-local-tool/image-to-pdf/"}]},{"@context":"https://schema.org","@type":"HowTo","name":"如何使用圖片轉 PDF","inLanguage":"zh-TW","step":[{"@type":"HowToStep","position":1,"text":"選擇或拖放一張或多張圖片。"},{"@type":"HowToStep","position":2,"text":"拖曳調整順序，選擇紙張大小、方向與邊界。"},{"@type":"HowToStep","position":3,"text":"按「轉換成 PDF 並下載」。每張圖片會成為一頁。"}]}]</script>
+</head>
+<body>
+<a class="skip" href="#main">跳到主要內容</a>
+<header class="site"><div class="wrap">
+  <a class="logo" href="../"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#2563eb"/><path d="M11 12h10M11 17h10M11 22h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg><span>PDF 本機工具</span></a>
+  <nav class="tools" aria-label="工具"><a href="../pdf-merge/">PDF 合併</a><a href="../pdf-split/">PDF 分割</a><a href="../pdf-organize/">PDF 轉向／排序</a><a href="../image-to-pdf/" aria-current="page">圖片轉 PDF</a></nav>
+</div></header>
+<main id="main" class="wrap">
+  <section class="hero">
+    <h1>圖片轉 PDF</h1>
+    <p class="lead">把 JPG、PNG 等圖片轉成一個 PDF，可調整順序、紙張大小與邊界。</p>
+    <div class="badge">🔒 檔案不會上傳，全程在您的瀏覽器中處理</div>
+  </section>
+  <div class="card">
+<div id="drop" class="drop" role="button" tabindex="0" aria-label="選擇或拖放圖片">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><div class="big">選擇或拖放圖片</div><div class="small">支援 JPG、PNG、WebP；HEIC 需瀏覽器支援（如 Safari）</div>
+  <input id="file" type="file" accept="image/*,.heic,.heif" multiple hidden>
+</div>
+<div id="work" class="hidden">
+  <div class="toolbar"><strong id="summary" class="grow"></strong><button id="clear" class="btn sm">全部清除</button></div>
+  <ul id="list" class="flist"></ul>
+  <div style="margin-top:10px">
+<div id="more" class="drop compact" role="button" tabindex="0" aria-label="加入更多圖片">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><div class="big">加入更多圖片</div>
+  <input id="file2" type="file" accept="image/*,.heic,.heif" multiple hidden>
+</div></div>
+  <div class="opts" style="margin-top:14px">
+    <fieldset><legend>版面設定</legend>
+      <label>紙張 <select id="size"><option value="a4">A4</option><option value="letter">Letter</option><option value="fit">與圖片相同大小</option></select></label>
+      <label>方向 <select id="orient"><option value="auto">自動</option><option value="portrait">直向</option><option value="landscape">橫向</option></select></label>
+      <label>邊界 <select id="margin"><option value="0">無</option><option value="20" selected>小</option><option value="40">大</option></select></label>
+    </fieldset>
+  </div>
+  <div class="actions"><button id="go" class="btn primary lg" disabled>轉換成 PDF 並下載</button></div>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+</div></div>
+  <aside class="ad-slot" data-ad-slot="main-banner" aria-label="廣告版位">廣告版位（預留）</aside>
+  <section class="card prose">
+    <h2>使用方式</h2><ol class="steps"><li>選擇或拖放一張或多張圖片。</li><li>拖曳調整順序，選擇紙張大小、方向與邊界。</li><li>按「轉換成 PDF 並下載」。每張圖片會成為一頁。</li></ol>
+    
+    <h2>常見問題</h2>
+    <h3>iPhone 的 HEIC 照片可以轉嗎？</h3><p>在 iPhone 上用 Safari 選取照片時，系統通常會自動轉成 JPG，可直接使用。若在電腦上使用 HEIC 檔，需瀏覽器本身支援（例如 Mac 的 Safari）；Chrome 等瀏覽器目前無法讀取 HEIC，請先轉成 JPG。</p>
+    <h3>照片方向會跑掉嗎？</h3><p>本工具會依照片的 EXIF 方向資訊自動轉正。</p>
+    <h3>檔案會上傳嗎？</h3><p>不會，所有處理都在您的瀏覽器中完成。</p>
+  </section>
+</main>
+<footer class="site"><div class="wrap cols">
+  <div style="max-width:520px">
+    <strong>PDF 本機工具</strong>
+    <p id="privacy"><strong>隱私聲明：</strong>檔案不會上傳。本站所有 PDF 與圖片處理都在您的瀏覽器中完成，檔案不會傳送到任何伺服器；本站不使用 Cookie、不做追蹤分析、不載入第三方腳本。</p>
+    <p><a href="#" data-remove-ads>移除廣告（即將推出）</a> · <a href="../THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="https://github.com/cvc016/pdf-local-tool" rel="noopener">原始碼</a></p>
+  </div>
+  <div><strong>工具</strong><ul><li><a href="../pdf-merge/">PDF 合併</a></li><li><a href="../pdf-split/">PDF 分割</a></li><li><a href="../pdf-organize/">PDF 轉向／排序</a></li><li><a href="../image-to-pdf/">圖片轉 PDF</a></li></ul></div>
+</div></footer>
+<script type="module" src="../assets/img2pdf.js"></script>
+</body>
+</html>

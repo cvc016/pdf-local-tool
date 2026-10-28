@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cvc016.github.io/pdf-local-tool/sitemap.xml

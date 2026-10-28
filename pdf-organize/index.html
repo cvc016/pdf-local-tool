@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' blob: data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>PDF 轉向、排序、刪除頁面 – 線上旋轉 PDF，檔案不上傳｜PDF 本機工具</title>
+<meta name="description" content="免費 PDF 頁面整理工具：旋轉 PDF 頁面方向、拖曳縮圖調整頁面順序、刪除不要的頁面。在瀏覽器本機處理，檔案不會上傳，無次數限制。">
+<link rel="canonical" href="https://cvc016.github.io/pdf-local-tool/pdf-organize/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:site_name" content="PDF 本機工具">
+<meta property="og:title" content="PDF 轉向、排序、刪除頁面 – 線上旋轉 PDF，檔案不上傳｜PDF 本機工具">
+<meta property="og:description" content="免費 PDF 頁面整理工具：旋轉 PDF 頁面方向、拖曳縮圖調整頁面順序、刪除不要的頁面。在瀏覽器本機處理，檔案不會上傳，無次數限制。">
+<meta property="og:url" content="https://cvc016.github.io/pdf-local-tool/pdf-organize/">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="modulepreload" href="../assets/common.js">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"PDF 轉向／排序｜PDF 本機工具","url":"https://cvc016.github.io/pdf-local-tool/pdf-organize/","description":"免費 PDF 頁面整理工具：旋轉 PDF 頁面方向、拖曳縮圖調整頁面順序、刪除不要的頁面。在瀏覽器本機處理，檔案不會上傳，無次數限制。","applicationCategory":"UtilitiesApplication","operatingSystem":"Any（網頁瀏覽器）","inLanguage":"zh-TW","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"}},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"旋轉會影響畫質嗎？","acceptedAnswer":{"@type":"Answer","text":"不會。旋轉只改變頁面的顯示方向設定，不會重新壓縮內容。"}},{"@type":"Question","name":"掃描檔方向顛倒怎麼辦？","acceptedAnswer":{"@type":"Answer","text":"按「全部向右轉」兩次即可旋轉 180 度，或個別調整每一頁。"}},{"@type":"Question","name":"檔案會上傳嗎？","acceptedAnswer":{"@type":"Answer","text":"不會，所有處理都在您的瀏覽器中完成。"}}]},{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"PDF 本機工具","item":"https://cvc016.github.io/pdf-local-tool/"},{"@type":"ListItem","position":2,"name":"PDF 轉向／排序","item":"https://cvc016.github.io/pdf-local-tool/pdf-organize/"}]},{"@context":"https://schema.org","@type":"HowTo","name":"如何使用PDF 轉向／排序","inLanguage":"zh-TW","step":[{"@type":"HowToStep","position":1,"text":"選擇要整理的 PDF 檔案。"},{"@type":"HowToStep","position":2,"text":"用 ↺↻ 旋轉頁面、拖曳縮圖調整順序、按 🗑 刪除頁面。"},{"@type":"HowToStep","position":3,"text":"按「套用並下載 PDF」取得整理好的檔案。"}]}]</script>
+</head>
+<body>
+<a class="skip" href="#main">跳到主要內容</a>
+<header class="site"><div class="wrap">
+  <a class="logo" href="../"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#2563eb"/><path d="M11 12h10M11 17h10M11 22h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg><span>PDF 本機工具</span></a>
+  <nav class="tools" aria-label="工具"><a href="../pdf-merge/">PDF 合併</a><a href="../pdf-split/">PDF 分割</a><a href="../pdf-organize/" aria-current="page">PDF 轉向／排序</a><a href="../image-to-pdf/">圖片轉 PDF</a></nav>
+</div></header>
+<main id="main" class="wrap">
+  <section class="hero">
+    <h1>PDF 轉向／排序</h1>
+    <p class="lead">旋轉頁面方向、拖曳縮圖調整順序、刪除不要的頁面。</p>
+    <div class="badge">🔒 檔案不會上傳，全程在您的瀏覽器中處理</div>
+  </section>
+  <div class="card">
+<div id="drop" class="drop" role="button" tabindex="0" aria-label="選擇或拖放一個 PDF 檔案">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><div class="big">選擇或拖放一個 PDF 檔案</div>
+  <input id="file" type="file" accept="application/pdf,.pdf"  hidden>
+</div>
+<div id="work" class="hidden">
+  <div class="toolbar"><strong id="fname" class="grow"></strong><button id="reset" class="btn sm">換一個檔案</button></div>
+  <div class="toolbar">
+    <button id="rotAllL" class="btn sm">↺ 全部向左轉</button><button id="rotAllR" class="btn sm">↻ 全部向右轉</button>
+    <button id="reverse" class="btn sm">⇅ 反轉順序</button><button id="resetAll" class="btn sm">復原全部</button>
+    <span id="summary" class="hint"></span>
+  </div>
+  <p class="hint">拖曳縮圖（手機請按住 ⠿）調整順序；↺↻ 旋轉、🗑 刪除（可再按 ↩ 還原）。</p>
+  <div id="grid" class="grid"></div>
+  <div class="actions"><button id="go" class="btn primary lg">套用並下載 PDF</button></div>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+</div></div>
+  <aside class="ad-slot" data-ad-slot="main-banner" aria-label="廣告版位">廣告版位（預留）</aside>
+  <section class="card prose">
+    <h2>使用方式</h2><ol class="steps"><li>選擇要整理的 PDF 檔案。</li><li>用 ↺↻ 旋轉頁面、拖曳縮圖調整順序、按 🗑 刪除頁面。</li><li>按「套用並下載 PDF」取得整理好的檔案。</li></ol>
+    
+    <h2>常見問題</h2>
+    <h3>旋轉會影響畫質嗎？</h3><p>不會。旋轉只改變頁面的顯示方向設定，不會重新壓縮內容。</p>
+    <h3>掃描檔方向顛倒怎麼辦？</h3><p>按「全部向右轉」兩次即可旋轉 180 度，或個別調整每一頁。</p>
+    <h3>檔案會上傳嗎？</h3><p>不會，所有處理都在您的瀏覽器中完成。</p>
+  </section>
+</main>
+<footer class="site"><div class="wrap cols">
+  <div style="max-width:520px">
+    <strong>PDF 本機工具</strong>
+    <p id="privacy"><strong>隱私聲明：</strong>檔案不會上傳。本站所有 PDF 與圖片處理都在您的瀏覽器中完成，檔案不會傳送到任何伺服器；本站不使用 Cookie、不做追蹤分析、不載入第三方腳本。</p>
+    <p><a href="#" data-remove-ads>移除廣告（即將推出）</a> · <a href="../THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="https://github.com/cvc016/pdf-local-tool" rel="noopener">原始碼</a></p>
+  </div>
+  <div><strong>工具</strong><ul><li><a href="../pdf-merge/">PDF 合併</a></li><li><a href="../pdf-split/">PDF 分割</a></li><li><a href="../pdf-organize/">PDF 轉向／排序</a></li><li><a href="../image-to-pdf/">圖片轉 PDF</a></li></ul></div>
+</div></footer>
+<script type="module" src="../assets/organize.js"></script>
+</body>
+</html>
