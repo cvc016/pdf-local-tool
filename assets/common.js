@@ -125,7 +125,7 @@ export function setupDrop(zone, input, onFiles, filter) {
     else if (ok.length < files.length) toast(`已略過 ${files.length - ok.length} 個不支援的檔案。`);
     if (ok.length) onFiles(ok);
   };
-  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('click', (e) => { if (e.target !== input) input.click(); });
   zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
   input.addEventListener('change', () => { handle(input.files); input.value = ''; });
   zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
