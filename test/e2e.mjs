@@ -41,6 +41,12 @@ async function mkPdf(name, widths) {
 }
 const A = await mkPdf('a.pdf', [201, 202, 203]);
 const B = await mkPdf('b.pdf', [301, 302]);
+// c.pdf: content, blank, content (widths 401, 402, 403)
+const C = await (async () => {
+  const d = await PDFDocument.create();
+  [401, 402, 403].forEach((w, i) => { const p = d.addPage([w, 400]); if (i !== 1) p.drawRectangle({ x: 40, y: 40, width: 200, height: 300 }); });
+  const f = join(OUT, 'c.pdf'); await writeFile(f, await d.save()); return f;
+})();
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
@@ -74,12 +80,13 @@ try {
   // Landing + SEO basics
   await open('');
   ok((await page.$$('h1')).length === 1 && (await page.title()).includes('PDF'), 'landing: one h1 + title');
-  for (const s of ['pdf-merge/', 'pdf-split/', 'pdf-organize/', 'image-to-pdf/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
+  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'privacy/', 'about/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
     const r = await page.goto(BASE + s); ok(r.status() === 200, `GET ${s} → ${r.status()}`);
   }
 
   // ---- MERGE: add a, b; move b to top with ▲ ... then download
-  await open('pdf-merge/');
+  await open('merge-pdf/');
+  ok(await page.$eval('.tool', (t) => !t.querySelector('.ad-slot')) && (await page.$$('.ad-slot')).length === 1, 'ads: exactly one banner slot, not inside the tool card');
   await (await page.$('#file')).uploadFile(A, B);
   await page.waitForFunction(() => document.querySelectorAll('#list li .thumb canvas').length === 2);
   ok(await page.$eval('#summary', (e) => e.textContent.includes('共 5 頁')), 'merge: shows 2 files / 5 pages');
@@ -98,7 +105,7 @@ try {
   ok(widths(d).join() === '201,202,203,301,302', `merge: drag reorder works (${widths(d)})`);
 
   // ---- SPLIT
-  await open('pdf-split/');
+  await open('split-pdf/');
   await (await page.$('#file')).uploadFile(A);
   await page.waitForSelector('#grid .pg canvas');
   await page.type('#ranges', '1-2, 3');
@@ -121,7 +128,7 @@ try {
   ok(r.name.endsWith('.pdf') && widths(d).join() === '203,201', `split extract "3, 1" single file → ${widths(d)}`);
 
   // ---- ORGANIZE: delete p2, rotate p3 right, drag p3 to front
-  await open('pdf-organize/');
+  await open('reorder-pdf-pages/');
   await (await page.$('#file')).uploadFile(A);
   await page.waitForFunction(() => document.querySelectorAll('#grid .pg canvas').length === 3);
   await page.click('#grid .pg:nth-child(2) [data-act=del]');
@@ -136,12 +143,31 @@ try {
   ok(widths(d).join() === '203,201', `organize: drag reorder → ${widths(d)}`);
   ok(d.getPage(0).getRotation().angle === 90 && d.getPage(1).getRotation().angle === 0, `organize: rotation [${d.getPages().map((p) => p.getRotation().angle)}]`);
 
+  // ---- DELETE: auto-detect blank page
+  await open('delete-pdf-pages/');
+  await (await page.$('#file')).uploadFile(C);
+  await page.waitForFunction(() => document.querySelectorAll('#grid .pg canvas').length === 3);
+  await page.click('#blank');
+  await page.waitForFunction(() => document.querySelectorAll('#grid .pg.del').length > 0);
+  r = await download(() => page.click('#go'));
+  d = await PDFDocument.load(r.bytes);
+  ok(widths(d).join() === '401,403', `delete: blank page removed → ${widths(d)}`);
+
+  // ---- ROTATE: rotate all right
+  await open('rotate-pdf/');
+  await (await page.$('#file')).uploadFile(A);
+  await page.waitForSelector('#grid .pg');
+  await page.click('#rotAllR');
+  r = await download(() => page.click('#go'));
+  d = await PDFDocument.load(r.bytes);
+  ok(d.getPageCount() === 3 && d.getPages().every((p) => p.getRotation().angle === 90), `rotate all: 3 pages at 90° (${d.getPages().map((p) => p.getRotation().angle)})`);
+
   // ---- IMAGE → PDF (fixtures rendered by Chrome itself)
   await page.setContent('<div style="width:300px;height:200px;background:linear-gradient(red,blue)"></div>');
   const png = join(OUT, 'img.png'), jpg = join(OUT, 'img.jpg');
   await page.screenshot({ path: png, clip: { x: 0, y: 0, width: 300, height: 200 } });
   await page.screenshot({ path: jpg, type: 'jpeg', clip: { x: 0, y: 0, width: 200, height: 300 } });
-  await open('image-to-pdf/');
+  await open('jpg-to-pdf/');
   await (await page.$('#file')).uploadFile(png, jpg);
   await page.waitForFunction(() => document.querySelectorAll('#list li .thumb img').length === 2 && !document.querySelector('#go').disabled);
   r = await download(() => page.click('#go'));
@@ -152,7 +178,7 @@ try {
 
   // mobile viewport renders without horizontal overflow
   await page.setViewport({ width: 375, height: 740, isMobile: true, hasTouch: true });
-  await open('pdf-organize/');
+  await open('rotate-pdf/');
   ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'mobile: no horizontal overflow');
 
   ok(external.length === 0, `no external network requests (${external.length}) ${external.slice(0, 3).join(' ')}`);
