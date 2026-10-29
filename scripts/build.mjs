@@ -7,7 +7,7 @@ import { BRAND, pages as toolPages, home, why as WHY, how as HOW } from './conte
 import { posts, BLOG_DATE } from './blog.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BASE = 'https://cvc016.github.io/pdf-local-tool/';
+const BASE = 'https://waitingstudio.com/';
 const LASTMOD = new Date().toISOString().slice(0, 10);
 const REPO = 'https://github.com/cvc016/pdf-local-tool';
 
