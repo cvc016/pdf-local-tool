@@ -11,6 +11,10 @@ export function isAdFree() {
   try { const v = JSON.parse(localStorage.getItem(AD_FREE_KEY) || 'null'); return !!(v && v.ok); } catch { return false; }
 }
 if (isAdFree()) document.documentElement.classList.add('ad-free');
+// Fill AdSense banner slots (only present when the build set ADSENSE_CLIENT); skipped for ad-free users.
+if (!isAdFree()) for (const ins of document.querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-status])')) {
+  try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {}
+}
 
 // ---- library loaders (lazy, local files only) ----
 let pdfLibP, pdfjsP, fflateP;

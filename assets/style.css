@@ -93,6 +93,7 @@ input[type=radio],input[type=checkbox]{width:18px;height:18px;accent-color:var(-
 /* ad slot: fixed, non-intrusive; reserved height avoids layout shift */
 .ad-slot{margin:24px auto;max-width:728px;min-height:90px;border:1px dashed #d3d8e3;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#a0a7b5;font-size:13px;background:#fafbfd}
 html.ad-free .ad-slot{display:none}
+.ad-slot.ad-live{display:block;height:90px;min-height:90px;overflow:hidden;border:0;background:none}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .tile{display:block;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;text-decoration:none;color:var(--text);border:2px solid transparent;transition:.15s}
 .tile:hover{border-color:var(--brand);transform:translateY(-2px)}

@@ -1,12 +1,12 @@
 // zh-TW copy for each landing page. Use Taiwan wording: 檔案、線上、頁面、儲存 (never 文檔、在線).
-export const BRAND = '本機PDF';
+export const BRAND = 'Waiting Studio 本機 PDF';
 
 const L = (slug, text) => `<a href="../${slug}/">${text}</a>`;
 
 // Shared "how it works" section, phrased per tool.
 export const how = (what) => `<h2>怎麼做到「不上傳」？運作原理說明</h2>
 <p>一般的線上 PDF 工具，會先把您的檔案上傳到對方的伺服器，處理完再讓您下載，檔案在網路上走了一趟，也會在別人的主機上停留一段時間。${BRAND} 的做法不同：整個網站只是一組靜態網頁，打開頁面時，瀏覽器會下載處理 PDF 所需的程式碼，之後${what}都由您裝置上的瀏覽器直接計算完成。</p>
-<p>我們使用開源函式庫 pdf-lib（MIT 授權）讀取與產生 PDF 結構，並用 Mozilla 開發的 PDF.js（Apache-2.0 授權）繪製頁面縮圖。這些程式碼都放在本站，不從第三方 CDN 載入；網頁也設定了內容安全政策（CSP），限制只能連線到本站。處理完成的檔案是在瀏覽器記憶體中產生，再透過「下載」存到您的裝置，從頭到尾沒有任何上傳的動作。您可以打開瀏覽器的開發者工具，在「網路」分頁自行確認。</p>`;
+<p>我們使用開源函式庫 pdf-lib（MIT 授權）讀取與產生 PDF 結構，並用 Mozilla 開發的 PDF.js（Apache-2.0 授權）繪製頁面縮圖。這些程式碼都放在本站，不從第三方 CDN 載入；網頁也設定了內容安全政策（CSP），限制可載入的程式來源；處理檔案的程式碼不會把檔案傳到任何地方。處理完成的檔案是在瀏覽器記憶體中產生，再透過「下載」存到您的裝置，從頭到尾沒有任何上傳的動作。您可以打開瀏覽器的開發者工具，在「網路」分頁自行確認。</p>`;
 
 // Shared differentiators (no-limit, no-signup, no pop-ups).
 export const why = `<h2>為什麼用 ${BRAND}？</h2>
