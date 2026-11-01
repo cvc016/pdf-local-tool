@@ -34,7 +34,7 @@ npm run test:live    # 對已部署網站執行同一測試
 
 ## Google AdSense（預設關閉）
 
-`scripts/build.mjs` 頂端的 `ADSENSE_CLIENT`（或環境變數 `ADSENSE_CLIENT`）為空字串時，輸出不含任何廣告程式與第三方請求，也不產生 `ads.txt`。
+`scripts/build.mjs` 頂端的 `ADSENSE_CLIENT`（預設 ca-pub-8133376999866232；環境變數 `ADSENSE_CLIENT=` 設為空字串時，輸出不含任何廣告程式與第三方請求，也不產生 `ads.txt`。
 設定為 `ca-pub-XXXXXXXXXXXXXXXX`（並可設定 `ADSENSE_SLOT` 為橫幅廣告單元 ID）後 `npm run build`，會：
 
 - 在 `<head>` 加入 `google-adsense-account` meta 與 adsbygoogle.js（async，不阻塞），

@@ -53,9 +53,12 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: true,
 const page = await browser.newPage();
 await page.setViewport({ width: 1200, height: 900 });
 const external = [], errors = [];
-page.on('request', (r) => { const u = new URL(r.url()); if (!['blob:', 'data:'].includes(u.protocol) && u.host !== host) external.push(r.url()); });
+const ADS_ON = /google-adsense-account/.test(await (await fetch(new URL('./', BASE))).text());
+const GOOGLE_AD = /(^|\.)(googlesyndication\.com|doubleclick\.net|google\.com|googleadservices\.com|gstatic\.com|googletagservices\.com|adtrafficquality\.google|google\.com\.tw)$/;
+const isGoogleAd = (u) => ADS_ON && GOOGLE_AD.test(new URL(u).hostname);
+page.on('request', (r) => { const u = new URL(r.url()); if (!['blob:', 'data:'].includes(u.protocol) && u.host !== host && !isGoogleAd(r.url())) external.push(r.url()); });
 page.on('pageerror', (e) => errors.push(String(e)));
-page.on('response', (r) => { if (r.status() >= 400 && !/favicon\.ico$/.test(r.url())) errors.push(`HTTP ${r.status()} ${r.url()}`); });
+page.on('response', (r) => { if (r.status() >= 400 && !/favicon\.ico$/.test(r.url())) { if (!isGoogleAd(r.url())) errors.push(`HTTP ${r.status()} ${r.url()}`); }; });
 page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
 const cdp = await page.createCDPSession();
 
@@ -114,7 +117,7 @@ try {
 
   // ---- MERGE: add a, b; move b to top with ▲ ... then download
   await open('merge-pdf/');
-  ok(await page.$eval('.tool', (t) => !t.querySelector('.ad-slot')) && (await page.$$('.ad-slot')).length === 1, 'ads: exactly one banner slot, not inside the tool card');
+  ok(await page.$eval('.tool', (t) => !t.querySelector('.ad-slot')) && (await page.$$('.ad-slot')).length <= 1, 'ads: at most one banner slot (none until an ad unit exists), not inside the tool card');
   await (await page.$('#file')).uploadFile(A, B);
   await page.waitForFunction(() => document.querySelectorAll('#list li .thumb canvas').length === 2);
   ok(await page.$eval('#summary', (e) => e.textContent.includes('共 5 頁')), 'merge: shows 2 files / 5 pages');
