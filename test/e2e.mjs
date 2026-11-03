@@ -6,7 +6,7 @@ import { readFile, mkdir, rm, readdir, writeFile } from 'node:fs/promises';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName, degrees } from 'pdf-lib';
 import { unzipSync } from 'fflate';
 import { posts } from '../scripts/blog.mjs';
 
@@ -62,17 +62,19 @@ page.on('response', (r) => { if (r.status() >= 400 && !/favicon\.ico$/.test(r.ur
 page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
 const cdp = await page.createCDPSession();
 
-let dl = 0;
+let dl = 0; const dlog = [];
+cdp.on('Browser.downloadWillBegin', (e) => dlog.push('begin ' + e.suggestedFilename)); cdp.on('Browser.downloadProgress', (e) => { if (e.state !== 'inProgress') dlog.push(e.state); });
+page.on('console', (m) => dlog.push('console ' + m.text()));
 async function download(trigger) {
   const dir = join(OUT, 'dl' + ++dl); await mkdir(dir, { recursive: true });
-  await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: dir });
+  await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: dir, eventsEnabled: true });
   await trigger();
   for (let i = 0; i < 100; i++) {
     const fs = (await readdir(dir)).filter((f) => !f.endsWith('.crdownload'));
     if (fs.length) { await new Promise((r) => setTimeout(r, 200)); return { name: fs[0], bytes: await readFile(join(dir, fs[0])) }; }
     await new Promise((r) => setTimeout(r, 100));
   }
-  throw new Error('download timed out: ' + await page.evaluate(() => document.querySelector('#status')?.textContent + ' | ' + document.querySelector('#results')?.textContent));
+  throw new Error('download timed out: ' + dlog.slice(-6).join(' ; ') + ' :: ' + await page.evaluate(() => document.querySelector('#status')?.textContent + ' | ' + document.querySelector('#results')?.textContent));
 }
 const widths = (d) => d.getPages().map((p) => Math.round(p.getWidth()));
 async function open(slug) {
@@ -84,7 +86,7 @@ try {
   // Landing + SEO basics
   await open('');
   ok((await page.$$('h1')).length === 1 && (await page.title()).includes('PDF'), 'landing: one h1 + title');
-  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'image-converter/', 'qr-code-generator/', 'blog/qr-code-never-expire/', 'blog/wifi-qr-code-for-shop/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
+  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'image-converter/', 'resize-image/', 'watermark-image/', 'add-page-numbers-to-pdf/', 'qr-code-generator/', 'blog/qr-code-never-expire/', 'blog/wifi-qr-code-for-shop/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
     const r = await page.goto(BASE + s); ok(r.status() === 200, `GET ${s} → ${r.status()}`);
   }
 
@@ -264,7 +266,8 @@ try {
   r = await download(() => page.click('#go'));
   ok(/_壓縮\.jpg$/.test(r.name) && magic(r.bytes) === 'jpg' && r.bytes.length < bigSize / 5, `image compress: JPG magic, ${bigSize} → ${r.bytes.length} B (${r.name})`);
   await page.select('#fmt', 'keep');
-  await page.waitForFunction(() => /PNG/.test(document.querySelector('#list .res').textContent));
+  await page.waitForFunction(() => /PNG/.test(document.querySelector('#list .res').textContent) && /合計/.test(document.querySelector('#status').textContent) && !document.querySelector('#go').disabled);
+  await new Promise((r) => setTimeout(r, 300));
   r = await download(() => page.click('#go'));
   ok(magic(r.bytes) === 'png' && r.bytes.length < bigSize, `image compress: keep format → PNG, smaller (${r.bytes.length})`);
   await (await page.$('#file2')).uploadFile(jpg, alpha);
@@ -293,9 +296,52 @@ try {
     ok(r.name === `alpha.${f}` && magic(r.bytes) === f, `converter: png → ${f} magic ok (${r.name})`);
   }
 
+  // ---- RESIZE / ROTATE
+  const dims = (u8) => page.evaluate(async (a) => { const bm = await createImageBitmap(new Blob([new Uint8Array(a)])); return [bm.width, bm.height]; }, [...u8]);
+  await open('resize-image/');
+  await (await page.$('#file')).uploadFile(big);
+  await page.select('#maxSide', '800'); await page.select('#rot', '90'); await page.select('#fmt', 'jpg');
+  await page.waitForFunction(() => /JPG .*600×800/.test(document.querySelector('#list .res')?.textContent || ''));
+  r = await download(() => page.click('#go'));
+  let dm = await dims(r.bytes);
+  ok(magic(r.bytes) === 'jpg' && dm.join() === '600,800' && /_調整\.jpg$/.test(r.name), `resize: 1600×1200 → max 800 + rot 90 = ${dm} (${r.name})`);
+  await page.select('#rot', '0'); await page.select('#mode', 'exact'); await page.type('#w', '300'); await page.select('#fmt', 'keep');
+  await page.waitForFunction(() => /PNG .*300×225/.test(document.querySelector('#list .res').textContent));
+  r = await download(() => page.click('#go'));
+  dm = await dims(r.bytes);
+  ok(magic(r.bytes) === 'png' && dm.join() === '300,225', `resize: width 300 keeps ratio → ${dm}`);
+
+  // ---- WATERMARK (Chinese text)
+  await open('watermark-image/');
+  await (await page.$('#file')).uploadFile(big, jpg);
+  await page.$eval('#wmText', (e) => { e.value = '僅供測試申請使用\n2026/11/03'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.$eval('#wmColor', (e) => { e.value = '#ff0000'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForFunction(() => [...document.querySelectorAll('#list .res')].filter((e) => e.textContent).length === 2);
+  r = await download(() => page.click('#go'));
+  zz = unzipSync(new Uint8Array(r.bytes)); zn = Object.keys(zz);
+  ok(zn.length === 2 && zn.every((n) => /_浮水印\.(png|jpg)$/.test(n)), `watermark: ZIP of 2 (${zn})`);
+  const diff = await page.evaluate(async (a, b) => {
+    const px = async (u) => { const bm = await createImageBitmap(new Blob([new Uint8Array(u)])); const c = new OffscreenCanvas(bm.width, bm.height); const x = c.getContext('2d'); x.drawImage(bm, 0, 0); return x.getImageData(0, 0, bm.width, bm.height).data; };
+    const A = await px(a), B = await px(b); let n = 0; for (let i = 0; i < A.length; i += 4) if (Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) > 40) n++; return n / (A.length / 4);
+  }, [...await readFile(big)], [...zz[zn.find((n) => n.startsWith('big'))]]);
+  ok(diff > 0.01 && diff < 0.6, `watermark: ${(diff * 100).toFixed(1)}% pixels changed (tiled text)`);
+
+  // ---- PDF PAGE NUMBERS
+  const RP = await (async () => { const d = await PDFDocument.create(); for (let i = 0; i < 4; i++) d.addPage([300, 400]); d.getPage(2).setRotation(degrees(90)); const f = join(OUT, 'pn.pdf'); await writeFile(f, await d.save()); return f; })();
+  await open('add-page-numbers-to-pdf/');
+  await (await page.$('#file')).uploadFile(RP);
+  await page.waitForFunction(() => !document.querySelector('#go').disabled);
+  await page.select('#style', 'zhN'); await page.click('#skipFirst');
+  r = await download(() => page.click('#go'));
+  d = await PDFDocument.load(r.bytes);
+  const xo = d.getPages().map((p) => { const x = p.node.Resources()?.lookup(PDFName.of('XObject')); return x ? x.keys().length : 0; });
+  ok(r.name === 'pn_頁碼.pdf' && d.getPageCount() === 4 && xo.join() === '0,1,1,1', `page numbers: 4 pages, cover skipped, images per page ${xo}`);
+  await page.waitForFunction(() => /3 頁加入頁碼/.test(document.querySelector('#status').textContent));
+  ok(true, 'page numbers: status reports 3 pages numbered');
+
   // mobile layout of the new/changed image tools
   await page.setViewport({ width: 375, height: 740, isMobile: true, hasTouch: true });
-  for (const s of ['image-converter/', 'compress-image/']) {
+  for (const s of ['image-converter/', 'compress-image/', 'resize-image/', 'watermark-image/']) {
     await open(s); await (await page.$('#file')).uploadFile(big, alpha);
     await page.waitForFunction(() => document.querySelectorAll('#list .res').length === 2 && [...document.querySelectorAll('#list .res')].every((e) => e.textContent));
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `mobile ${s}: no horizontal overflow`);

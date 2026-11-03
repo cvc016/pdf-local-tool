@@ -27,7 +27,7 @@ const ADS_HEAD = ADS ? `<meta name="google-adsense-account" content="${ADSENSE_C
 
 const ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#2563eb"/><path d="M11 12h10M11 17h10M11 22h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 const UP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>`;
-const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮', imgconv: '圖片轉檔', qr: 'QR Code' };
+const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮', imgconv: '圖片轉檔', imgresize: '改尺寸', imgwm: '浮水印', pagenum: 'PDF 頁碼', qr: 'QR Code' };
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const strip = (s) => s.replace(/<[^>]+>/g, '');
 
@@ -166,6 +166,47 @@ const TOOLS = {
       <label id="bgWrap">透明背景填色 <input id="bg" type="color" value="#ffffff"></label>
       <p class="hint" style="margin:4px 0 0">JPG 不支援透明，透明部分會填入背景色（預設白色）；PNG 與 WebP 會保留透明。</p>
     </fieldset>`, '轉換並下載') },
+  imgresize: { js: 'imgresize.js', html: () => imgBatch('選擇或拖放圖片', '支援 JPG、PNG、WebP、GIF、BMP，可一次選多張', `<fieldset><legend>尺寸</legend>
+      <label>方式 <select id="mode"><option value="max">限制最長邊</option><option value="pct">依百分比</option><option value="exact">指定寬高（px）</option></select></label>
+      <label id="m_max">最長邊 <select id="maxSide"><option value="3840">3840 px</option><option value="2560">2560 px</option><option value="1920" selected>1920 px</option><option value="1280">1280 px</option><option value="1080">1080 px</option><option value="800">800 px</option><option value="512">512 px</option></select></label>
+      <label id="m_pct">比例 <select id="pct"><option value="75">75%</option><option value="50" selected>50%</option><option value="33">33%</option><option value="25">25%</option><option value="200">200%（放大）</option></select></label>
+      <span id="m_exact"><label>寬 <input id="w" type="number" min="1" max="20000" inputmode="numeric" placeholder="自動" style="width:7em"></label> <label>高 <input id="h" type="number" min="1" max="20000" inputmode="numeric" placeholder="自動" style="width:7em"></label> <label><input id="keepRatio" type="checkbox" checked> 保持比例（放進寬×高之內）</label></span>
+    </fieldset>
+    <fieldset><legend>旋轉與輸出</legend>
+      <label>旋轉 <select id="rot"><option value="0">不旋轉</option><option value="90">順時針 90°</option><option value="180">180°</option><option value="270">逆時針 90°</option></select></label>
+      <label><input id="flip" type="checkbox"> 水平翻轉（鏡像）</label>
+      <label>格式 <select id="fmt"><option value="keep">保持原格式</option><option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option></select></label>
+      <p class="hint" style="margin:4px 0 0">只填寬或高其中一個時，另一邊依原比例自動計算。輸出不保留 EXIF。</p>
+    </fieldset>`, '調整並下載') },
+  imgwm: { js: 'imgwatermark.js', html: () => imgBatch('選擇或拖放圖片', '證件照、截圖、作品照片皆可，可一次選多張', `<fieldset><legend>浮水印文字</legend>
+      <label style="display:block">文字（可換行） <textarea id="wmText" rows="2" style="width:100%">僅供 OOO 申請使用</textarea></label>
+      <label>位置 <select id="wmPos"><option value="tile" selected>斜向平鋪（證件建議）</option><option value="center">中央斜放</option><option value="br">右下角</option><option value="bl">左下角</option></select></label>
+      <label>顏色 <input id="wmColor" type="color" value="#808080"></label>
+    </fieldset>
+    <fieldset><legend>樣式與輸出</legend>
+      <label>大小 <input id="wmSize" type="range" min="2" max="15" value="6"> <span id="sv">6</span>%</label>
+      <label>不透明度 <input id="wmOpacity" type="range" min="10" max="90" value="35"> <span id="ov">35</span>%</label>
+      <label>格式 <select id="fmt"><option value="keep">保持原格式</option><option value="jpg">JPG</option><option value="png">PNG</option><option value="webp">WebP</option></select></label>
+      <p class="hint" style="margin:4px 0 0">浮水印直接畫進圖片像素，無法被一鍵移除；請保留原檔。</p>
+    </fieldset>`, '加上浮水印並下載') },
+  pagenum: { js: 'pagenum.js', html: () => `<div class="card tool">${drop(PDF, false, '選擇或拖放一個 PDF 檔案', '檔案只在您的瀏覽器中處理，不會上傳')}
+<div id="work" class="hidden">
+  <div class="toolbar"><strong id="fname" class="grow"></strong><button id="reset" class="btn sm">換一個檔案</button></div>
+  <div class="opts">
+    <fieldset><legend>頁碼樣式</legend>
+      <label>格式 <select id="style"><option value="n">1</option><option value="nN">1 / 10</option><option value="dash">- 1 -</option><option value="zh">第 1 頁</option><option value="zhN">第 1 頁，共 10 頁</option><option value="page">Page 1</option></select></label>
+      <label>位置 <select id="pos"><option value="bc" selected>下方置中</option><option value="br">右下</option><option value="bl">左下</option><option value="tc">上方置中</option><option value="tr">右上</option><option value="tl">左上</option></select></label>
+      <label>起始數字 <input id="start" type="number" value="1" min="0" max="99999" inputmode="numeric" style="width:6em"></label>
+    </fieldset>
+    <fieldset><legend>外觀</legend>
+      <label>字級 <select id="size"><option value="9">9 pt</option><option value="10">10 pt</option><option value="11" selected>11 pt</option><option value="12">12 pt</option><option value="14">14 pt</option></select></label>
+      <label>顏色 <input id="color" type="color" value="#333333"></label>
+      <label><input id="skipFirst" type="checkbox"> 封面（第 1 頁）不加頁碼</label>
+    </fieldset>
+  </div>
+  <div class="actions"><button id="go" class="btn primary lg" disabled>加入頁碼並下載</button></div>
+  ${statusBox}
+</div></div>` },
   qr: { js: 'qr.js', html: () => `<div class="card tool"><form id="qrForm" class="qrwrap" autocomplete="off">
 <div class="qrleft opts">
   <fieldset><legend>內容類型</legend><div class="qtypes">
@@ -373,7 +414,7 @@ out.push(['about/index.html', layout({ slug: 'about', title: `關於我們｜${B
   ld: [crumbs('關於我們', 'about')],
   main: `<article class="card prose">
 <h2>我們在做什麼</h2>
-<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF、圖片壓縮，以及永久有效的 QR Code 產生器。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
+<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF、PDF 加頁碼、圖片壓縮、格式轉換、尺寸調整、加浮水印，以及永久有效的 QR Code 產生器。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
 <h2>我們的原則</h2>
 <ul>
 <li><strong>檔案不上傳：</strong>網站是純靜態網頁，沒有接收檔案的伺服器。</li>
