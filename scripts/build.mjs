@@ -324,6 +324,33 @@ out.push(['privacy/index.html', layout({ slug: 'privacy', title: `隱私權政�
 </article>` })]);
 
 // About / contact
+// Chrome extension privacy policy
+out.push(['extension-privacy/index.html', layout({ slug: 'extension-privacy', title: `Waiting PDF 擴充功能隱私權政策 Extension Privacy Policy｜${BRAND}`, desc: 'Waiting PDF 本機工具 Chrome 擴充功能隱私權政策：檔案全程本機處理，唯一對外連線是向 api.gumroad.com 驗證授權碼。Privacy policy for the Waiting PDF Local Tools Chrome extension.', h1: 'Waiting PDF 本機工具（Chrome 擴充功能）隱私權政策', lead: '生效日期 Effective：2026-11-03', badge: false,
+  ld: [crumbs('擴充功能隱私權政策', 'extension-privacy')],
+  main: `<article class="card prose">
+<p>本政策適用於 Chrome 擴充功能「Waiting PDF 本機工具：合併、拆分、圖片轉 PDF」。網站本身的政策請見 <a href="../privacy/">隱私權政策</a>。</p>
+<h2>繁體中文</h2>
+<ul>
+<li>本擴充功能的所有 PDF 與圖片處理都在您的瀏覽器內本機完成，檔案不會上傳到任何伺服器。</li>
+<li>不收集、不傳送、不販售任何個人資料或使用資料；不使用分析、追蹤或廣告。</li>
+<li>僅在您的瀏覽器本機（localStorage）儲存：授權碼、最近一次驗證時間、每日免費使用次數計數。移除擴充功能即一併刪除。</li>
+<li><strong>唯一的對外連線是 api.gumroad.com</strong>：當您輸入 Gumroad 授權碼時（以及之後約每 7 天一次），擴充功能會將「授權碼」與本產品的 product_id 傳送至 Gumroad（https://api.gumroad.com/v2/licenses/verify）以確認購買有效。不傳送任何檔案、檔名、瀏覽紀錄或其他資料。Gumroad 對該請求的處理適用 <a href="https://gumroad.com/privacy" rel="noopener">Gumroad 隱私權政策</a>。驗證成功後可離線使用，30 天內至少需連線驗證一次。</li>
+<li>舊式 WPDF1 授權碼以內建公鑰離線驗證，不會連網。</li>
+<li>唯一要求的網站存取權限為 https://api.gumroad.com/*，僅用於上述授權驗證；不要求其他 Chrome 權限。</li>
+<li>聯絡：<a href="mailto:abbottabbott399@gmail.com">abbottabbott399@gmail.com</a></li>
+</ul>
+<h2 lang="en">English</h2>
+<ul lang="en">
+<li>All PDF and image processing happens locally in your browser. Your files are never uploaded to any server.</li>
+<li>We do not collect, transmit, or sell any personal or usage data. No analytics, tracking, or ads.</li>
+<li>Only stored locally in your browser (localStorage): your license key, the time of its last successful check, and a daily free-usage counter. Removing the extension deletes them.</li>
+<li><strong>The only network connection is to api.gumroad.com</strong>: when you enter a Gumroad license key (and roughly every 7 days afterwards), the extension sends the license key and this product's product_id to Gumroad (https://api.gumroad.com/v2/licenses/verify) to confirm the purchase. No files, file names, browsing data or anything else is sent. Gumroad's handling of that request is governed by <a href="https://gumroad.com/privacy" rel="noopener">Gumroad's privacy policy</a>. After activation it works offline; it must reach Gumroad at least once every 30 days.</li>
+<li>Legacy WPDF1 codes are verified offline with a bundled public key; no network access.</li>
+<li>The only host permission requested is https://api.gumroad.com/*, used solely for license verification. No other Chrome permissions.</li>
+<li>Contact: <a href="mailto:abbottabbott399@gmail.com">abbottabbott399@gmail.com</a></li>
+</ul>
+</article>` })]);
+
 out.push(['about/index.html', layout({ slug: 'about', title: `關於我們｜${BRAND}`, desc: `關於 ${BRAND}：一個免費、免註冊、無次數限制、檔案不上傳的 PDF 工具網站。聯絡方式與回報問題管道。`, h1: `關於 ${BRAND}`, lead: '', badge: false,
   ld: [crumbs('關於我們', 'about')],
   main: `<article class="card prose">
@@ -443,7 +470,7 @@ for (const [from, to] of Object.entries(REDIRECTS)) {
 
 for (const [f, html] of out) { const p = join(ROOT, f); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, html); }
 
-const indexed = ['', ...toolPages.map((p) => p.slug + '/'), 'blog/', ...posts.map((p) => `blog/${p.slug}/`), 'privacy/', 'about/', 'contact/', 'terms/'];
+const indexed = ['', ...toolPages.map((p) => p.slug + '/'), 'blog/', ...posts.map((p) => `blog/${p.slug}/`), 'privacy/', 'extension-privacy/', 'about/', 'contact/', 'terms/'];
 writeFileSync(join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${indexed.map((s) => `  <url><loc>${BASE}${s}</loc><lastmod>${LASTMOD}</lastmod><priority>${s === '' ? '1.0' : /privacy|about|contact|terms/.test(s) ? '0.3' : /^blog\//.test(s) ? '0.7' : '0.9'}</priority></url>`).join('\n')}
