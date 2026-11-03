@@ -3,7 +3,14 @@
 import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BRAND, pages as toolPages, home, why as WHY, how as HOW } from './content.mjs';
+import { BRAND, pages as toolPages, home, why as WHY, how as HOW, GROUPS } from './content.mjs';
+// 依用途分組：排序 toolPages（首頁、導覽、頁尾、相關工具、sitemap 都照這個順序）
+const GI = Object.fromEntries(GROUPS.flatMap((g, i) => g.slugs.map((s, j) => [s, i * 100 + j])));
+for (const t of toolPages) if (!(t.slug in GI)) throw new Error('tool not in GROUPS: ' + t.slug);
+toolPages.sort((a, b) => GI[a.slug] - GI[b.slug]);
+const bySlugT = Object.fromEntries(toolPages.map((t) => [t.slug, t]));
+const groupsT = GROUPS.map((g) => ({ ...g, tools: g.slugs.map((s) => bySlugT[s]).filter(Boolean) }));
+const groupOf = (slug) => groupsT.find((g) => g.slugs.includes(slug));
 import { posts, BLOG_DATE } from './blog.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,7 +34,7 @@ const ADS_HEAD = ADS ? `<meta name="google-adsense-account" content="${ADSENSE_C
 
 const ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#2563eb"/><path d="M11 12h10M11 17h10M11 22h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 const UP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>`;
-const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮', imgconv: '圖片轉檔', imgresize: '改尺寸', imgwm: '浮水印', pagenum: 'PDF 頁碼', qr: 'QR Code' };
+const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮', imgconv: '圖片轉檔', imgresize: '改尺寸', imgwm: '浮水印', pagenum: '加頁碼', words: '字數統計', pass: '密碼產生器', qr: 'QR Code' };
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const strip = (s) => s.replace(/<[^>]+>/g, '');
 
@@ -207,6 +214,23 @@ const TOOLS = {
   <div class="actions"><button id="go" class="btn primary lg" disabled>加入頁碼並下載</button></div>
   ${statusBox}
 </div></div>` },
+  words: { js: 'wordcount.js', html: () => `<div class="card tool">
+  <label for="text" class="hint">貼上或輸入文字，統計會即時更新（文字不會上傳）</label>
+  <textarea id="text" rows="10" style="width:100%;font-size:16px" placeholder="在這裡貼上文章、作業、報告或貼文…"></textarea>
+  <div id="stats" class="stats" aria-live="polite"></div>
+  <div class="actions"><button id="copyStats" type="button" class="btn">複製統計結果</button><button id="clearText" type="button" class="btn">清除文字</button></div>
+</div>` },
+  pass: { js: 'password.js', html: () => `<div class="card tool"><form id="pwForm" class="opts" autocomplete="off">
+  <fieldset><legend>密碼設定</legend>
+    <label>長度 <input id="len" type="range" min="6" max="64" value="16"> <span id="lv">16</span></label>
+    <label>數量 <select id="count"><option value="1">1 組</option><option value="5" selected>5 組</option><option value="10">10 組</option></select></label>
+    <div><label><input id="upper" type="checkbox" checked> 大寫 A-Z</label> <label><input id="lower" type="checkbox" checked> 小寫 a-z</label> <label><input id="digits" type="checkbox" checked> 數字 0-9</label> <label><input id="symbols" type="checkbox" checked> 符號 !@#$…</label></div>
+    <label><input id="noAmbig" type="checkbox"> 排除容易混淆的字元（I l 1 O 0 o）</label>
+  </fieldset>
+  <ul id="pwList" class="pwlist"></ul>
+  <div id="strength" class="status" role="status"></div>
+  <div class="actions"><button id="regen" type="button" class="btn primary lg">重新產生</button></div>
+</form></div>` },
   qr: { js: 'qr.js', html: () => `<div class="card tool"><form id="qrForm" class="qrwrap" autocomplete="off">
 <div class="qrleft opts">
   <fieldset><legend>內容類型</legend><div class="qtypes">
@@ -275,7 +299,7 @@ ${ADS_HEAD}${ld.length ? `<script type="application/ld+json">${JSON.stringify(ld
 <a class="skip" href="#main">跳到主要內容</a>
 <header class="site"><div class="wrap">
   <a class="logo" href="${root}">${ICON}<span>${BRAND}</span></a>
-  <nav class="tools" aria-label="工具">${toolPages.map((t) => `<a href="${root}${t.slug}/"${t.slug === slug ? ' aria-current="page"' : ''}>${NAV[t.tool]}</a>`).join('')}</nav>
+  <nav class="tools" aria-label="工具">${groupsT.map((g) => `<span class="ngrp"><span class="nlab">${g.short}</span>${g.tools.map((t) => `<a href="${root}${t.slug}/"${t.slug === slug ? ' aria-current="page"' : ''}>${NAV[t.tool]}</a>`).join('')}</span>`).join('')}</nav>
 </div></header>
 <main id="main" class="wrap">
   <section class="hero">
@@ -291,7 +315,7 @@ ${ADS_HEAD}${ld.length ? `<script type="application/ld+json">${JSON.stringify(ld
     <p><strong>檔案不會上傳：</strong>本站所有 PDF 與圖片處理都在您的瀏覽器中完成，不會傳送到任何伺服器；${ADS ? '本站以 Google AdSense 顯示固定橫幅廣告（無彈出視窗），廣告商可能使用 Cookie，詳見隱私權政策。' : '不使用 Cookie、不做追蹤分析、不載入第三方腳本。'}</p>
     <p><a href="${root}blog/">教學文章</a> · <a href="${root}privacy/">隱私權政策</a> · <a href="${root}about/">關於我們</a> · <a href="${root}contact/">聯絡我們</a> · <a href="${root}terms/">使用條款</a> · <a href="${root}remove-ads/">移除廣告</a> · <a href="${root}THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="${REPO}" rel="noopener">原始碼</a></p>
   </div>
-  <div><strong>免費工具</strong><ul>${toolPages.map((t) => `<li><a href="${root}${t.slug}/">${t.nav}</a></li>`).join('')}</ul></div>
+  ${groupsT.map((g) => `<div><strong>${g.name}</strong><ul>${g.tools.map((t) => `<li><a href="${root}${t.slug}/">${t.nav}</a></li>`).join('')}</ul></div>`).join('')}
 </div></footer>
 <script type="module" src="${root}assets/${js || 'common.js'}"></script>
 </body>
@@ -326,8 +350,10 @@ for (const p of toolPages) {
     ${p.extra}
     ${HOW(p.howWhat)}
     ${faqHtml(p.faq)}
+    <h2>同類工具：${groupOf(p.slug).name}</h2>
+    <ul class="links">${groupOf(p.slug).tools.filter((x) => x !== p).map((x) => `<li><a href="../${x.slug}/">${x.nav}</a>：${x.short}</li>`).join('')}</ul>
     <h2>其他免費工具</h2>
-    <ul class="links">${toolPages.filter((x) => x !== p).map((x) => `<li><a href="../${x.slug}/">${x.nav}</a>：${x.short}</li>`).join('')}</ul>
+    ${groupsT.filter((g) => g !== groupOf(p.slug)).map((g) => `<h3>${g.name}</h3><ul class="links">${g.tools.map((x) => `<li><a href="../${x.slug}/">${x.nav}</a>：${x.short}</li>`).join('')}</ul>`).join('\n    ')}
   </article>`;
   const url = `${BASE}${p.slug}/`;
   const ld = [
@@ -348,7 +374,8 @@ const homeFaq = [
   ['支援有密碼的 PDF 嗎？', '目前不支援加密或設有開啟密碼的 PDF，請先用原本的軟體移除密碼後再使用。'],
 ];
 out.push(['index.html', layout({ slug: '', title: home.title, desc: home.desc, h1: home.h1, lead: home.lead,
-  main: `<section class="tiles" aria-label="工具列表">${toolPages.map((t) => `<a class="tile" href="${t.slug}/"><div class="ic">${t.ic}</div><h2>${t.nav}</h2><p>${t.short}</p></a>`).join('')}</section>
+  main: `${groupsT.map((g, i) => `<section class="tgroup" aria-labelledby="g${i}"><h2 id="g${i}" class="ghead">${g.ic} ${g.name}<small>${g.desc}</small></h2>
+  <div class="tiles">${g.tools.map((t) => `<a class="tile" href="${t.slug}/"><div class="ic">${t.ic}</div><h3>${t.nav}</h3><p>${t.short}</p></a>`).join('')}</div></section>`).join('\n  ')}
   <article class="card prose">${WHY.replace(/\.\.\//g, './')}</article>
   ${AD}
   <article class="card prose">${HOW('合併、分割、旋轉等處理').replace(/\.\.\//g, './')}${faqHtml(homeFaq)}</article>`,
@@ -414,7 +441,7 @@ out.push(['about/index.html', layout({ slug: 'about', title: `關於我們｜${B
   ld: [crumbs('關於我們', 'about')],
   main: `<article class="card prose">
 <h2>我們在做什麼</h2>
-<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF、PDF 加頁碼、圖片壓縮、格式轉換、尺寸調整、加浮水印，以及永久有效的 QR Code 產生器。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
+<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF、PDF 加頁碼、圖片壓縮、格式轉換、尺寸調整、加浮水印、字數統計、隨機密碼產生器，以及永久有效的 QR Code 產生器。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
 <h2>我們的原則</h2>
 <ul>
 <li><strong>檔案不上傳：</strong>網站是純靜態網頁，沒有接收檔案的伺服器。</li>

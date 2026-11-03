@@ -86,7 +86,7 @@ try {
   // Landing + SEO basics
   await open('');
   ok((await page.$$('h1')).length === 1 && (await page.title()).includes('PDF'), 'landing: one h1 + title');
-  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'image-converter/', 'resize-image/', 'watermark-image/', 'add-page-numbers-to-pdf/', 'qr-code-generator/', 'blog/qr-code-never-expire/', 'blog/wifi-qr-code-for-shop/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
+  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'image-converter/', 'resize-image/', 'watermark-image/', 'add-page-numbers-to-pdf/', 'qr-code-generator/', 'word-counter/', 'password-generator/', 'blog/strong-password-guide/', 'blog/qr-code-never-expire/', 'blog/wifi-qr-code-for-shop/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
     const r = await page.goto(BASE + s); ok(r.status() === 200, `GET ${s} → ${r.status()}`);
   }
 
@@ -296,6 +296,23 @@ try {
     ok(r.name === `alpha.${f}` && magic(r.bytes) === f, `converter: png → ${f} magic ok (${r.name})`);
   }
 
+  // ---- WORD COUNTER / PASSWORD / GROUPS
+  await open('');
+  ok((await page.$$eval('.tgroup .ghead', (e) => e.map((x) => x.textContent))).length === 4, 'home: 4 tool groups');
+  await open('word-counter/');
+  await page.type('#text', 'Hello world 世界你好！ 2026\n\n第二段');
+  await page.waitForFunction(() => document.querySelector('#stats [data-k=words]')?.textContent === '10');
+  const wc = await page.$$eval('#stats b[data-k]', (e) => Object.fromEntries(e.map((x) => [x.dataset.k, x.textContent])));
+  ok(wc.words === '10' && wc.cjk === '7' && wc.en === '2' && wc.num === '1' && wc.paras === '2', `wordcount: ${JSON.stringify(wc)}`);
+  await open('password-generator/');
+  await page.$eval('#len', (e) => { e.value = 24; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForFunction(() => document.querySelector('#pwList code.pw')?.textContent.length === 24);
+  const pws = await page.$$eval('#pwList code.pw', (e) => e.map((x) => x.textContent));
+  ok(pws.length === 5 && pws.every((p) => p.length === 24 && /[A-Z]/.test(p) && /[a-z]/.test(p) && /\d/.test(p) && /[^A-Za-z0-9]/.test(p)) && new Set(pws).size === 5, `password: 5×24 all sets (${pws[0]})`);
+  await page.click('#symbols');
+  await page.waitForFunction(() => [...document.querySelectorAll('#pwList code.pw')].every((x) => /^[A-Za-z0-9]+$/.test(x.textContent)));
+  ok(true, 'password: symbols off');
+
   // ---- RESIZE / ROTATE
   const dims = (u8) => page.evaluate(async (a) => { const bm = await createImageBitmap(new Blob([new Uint8Array(a)])); return [bm.width, bm.height]; }, [...u8]);
   await open('resize-image/');
@@ -341,11 +358,12 @@ try {
 
   // mobile layout of the new/changed image tools
   await page.setViewport({ width: 375, height: 740, isMobile: true, hasTouch: true });
-  for (const s of ['image-converter/', 'compress-image/', 'resize-image/', 'watermark-image/']) {
-    await open(s); await (await page.$('#file')).uploadFile(big, alpha);
-    await page.waitForFunction(() => document.querySelectorAll('#list .res').length === 2 && [...document.querySelectorAll('#list .res')].every((e) => e.textContent));
+  for (const s of ['', 'image-converter/', 'compress-image/', 'resize-image/', 'watermark-image/', 'word-counter/', 'password-generator/']) {
+    await open(s); const fi = await page.$('#file');
+    if (fi) { await fi.uploadFile(big, alpha);
+    await page.waitForFunction(() => document.querySelectorAll('#list .res').length === 2 && [...document.querySelectorAll('#list .res')].every((e) => e.textContent)); }
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `mobile ${s}: no horizontal overflow`);
-    await page.screenshot({ path: join(OUT, s.replace('/', '') + '-mobile.png'), fullPage: false });
+    await page.screenshot({ path: join(OUT, (s.replace('/', '') || 'home') + '-mobile.png'), fullPage: false });
   }
   await page.setViewport({ width: 1200, height: 900 });
 
