@@ -4,7 +4,9 @@ THIRD-PARTY SOFTWARE NOTICES AND LICENSES
 This site ("PDF 本機工具") bundles the following third-party software, served
 locally from /vendor (no CDN). All are under permissive licenses.
 No GPL/LGPL/AGPL code is included (MuPDF.js and Ghostscript, which are AGPL,
-are intentionally NOT used; there is no PDF compression feature).
+are intentionally NOT used). PDF compression, PDF-to-JPG and image compression
+(added 2026-11) use only PDF.js (Apache-2.0), pdf-lib (MIT), fflate (MIT) and
+the browser's built-in Canvas encoders; no new third-party code was added.
 
 | Component  | Version | License                     | Files                              |
 |------------|---------|-----------------------------|------------------------------------|

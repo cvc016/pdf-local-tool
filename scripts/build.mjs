@@ -27,7 +27,7 @@ const ADS_HEAD = ADS ? `<meta name="google-adsense-account" content="${ADSENSE_C
 
 const ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#2563eb"/><path d="M11 12h10M11 17h10M11 22h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 const UP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>`;
-const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF' };
+const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮' };
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const strip = (s) => s.replace(/<[^>]+>/g, '');
 
@@ -103,6 +103,51 @@ const TOOLS = {
   reorder: { js: 'organize.js', suffix: '已排序', html: () => organize(`<button id="reverse" class="btn sm">⇅ 反轉順序</button>${reset}`, '拖曳縮圖調整順序（手機請按住 ⠿ 拖曳）；也可以旋轉 ↺↻ 或刪除 🗑。') },
   img: { js: 'img2pdf.js', html: () => img(false) },
   heic: { js: 'img2pdf.js', html: () => img(true) },
+  compress: { js: 'compress.js', html: () => `<div class="card tool">${drop(PDF, false, '選擇或拖放一個 PDF 檔案', '檔案只在您的瀏覽器中壓縮，不會上傳')}
+<div id="work" class="hidden">
+  <div class="toolbar"><strong id="fname" class="grow"></strong><button id="reset" class="btn sm">換一個檔案</button></div>
+  <div class="opts">
+    <fieldset><legend>壓縮程度</legend>
+      <label><input type="radio" name="level" value="high"> 輕度（200 DPI，畫質優先）</label>
+      <label><input type="radio" name="level" value="std" checked> 標準（144 DPI，建議）</label>
+      <label><input type="radio" name="level" value="max"> 強力（96 DPI，檔案最小）</label>
+      <div><label><input id="gray" type="checkbox"> 轉成灰階（黑白文件可再縮小）</label></div>
+    </fieldset>
+  </div>
+  <p class="hint">壓縮會把每一頁轉成圖片，壓縮後的文字無法再選取或搜尋；需要保留文字時請保留原檔。</p>
+  <div class="actions"><button id="go" class="btn primary lg">壓縮 PDF 並下載</button></div>
+  ${statusBox}
+  <ul id="results" class="results"></ul>
+</div></div>` },
+  pdf2img: { js: 'pdf2img.js', html: () => `<div class="card tool">${drop(PDF, false, '選擇或拖放一個 PDF 檔案', '檔案只在您的瀏覽器中轉換')}
+<div id="work" class="hidden">
+  <div class="toolbar"><strong id="fname" class="grow"></strong><button id="reset" class="btn sm">換一個檔案</button></div>
+  <div class="opts">
+    <fieldset><legend>輸出設定</legend>
+      <label>格式 <select id="fmt"><option value="jpg">JPG</option><option value="png">PNG</option></select></label>
+      <label>解析度 <select id="dpi"><option value="96">96 DPI（螢幕瀏覽）</option><option value="150" selected>150 DPI（建議）</option><option value="300">300 DPI（列印）</option></select></label>
+      <label for="ranges" style="display:block;margin:6px 0 4px">頁碼（選填）：</label>
+      <input id="ranges" type="text" autocomplete="off">
+    </fieldset>
+  </div>
+  <div class="actions"><button id="go" class="btn primary lg">轉成圖片並下載</button></div>
+  ${statusBox}
+</div></div>` },
+  imgc: { js: 'imgcompress.js', html: () => `<div class="card tool">${drop('image/jpeg,image/png,image/webp,image/gif,image/bmp', true, '選擇或拖放圖片', '支援 JPG、PNG、WebP，可一次選多張')}
+<div id="work" class="hidden">
+  <div class="toolbar"><strong id="summary" class="grow"></strong><button id="clear" class="btn sm">全部清除</button></div>
+  <ul id="list" class="flist"></ul>
+  <div style="margin-top:10px">${drop('image/jpeg,image/png,image/webp,image/gif,image/bmp', true, '加入更多圖片', '', 'more', 'file2', true)}</div>
+  <div class="opts" style="margin-top:14px">
+    <fieldset><legend>壓縮設定</legend>
+      <label>輸出格式 <select id="fmt"><option value="jpg">JPG</option><option value="webp">WebP（更小）</option><option value="png">PNG（無損、保留透明）</option></select></label>
+      <label>品質 <input id="quality" type="range" min="30" max="95" value="75"> <span id="qv">75</span></label>
+      <label>最長邊 <select id="maxw"><option value="0">不縮小</option><option value="2560">2560 px</option><option value="1920" selected>1920 px</option><option value="1280">1280 px</option><option value="800">800 px</option></select></label>
+    </fieldset>
+  </div>
+  <div class="actions"><button id="go" class="btn primary lg" disabled>壓縮圖片並下載</button></div>
+  ${statusBox}
+</div></div>` },
 };
 
 function layout({ slug, title, desc, h1, lead, main, ld = [], js, suffix, noindex, badge = true, ogType = 'website' }) {
@@ -244,7 +289,7 @@ out.push(['about/index.html', layout({ slug: 'about', title: `關於我們｜${B
   ld: [crumbs('關於我們', 'about')],
   main: `<article class="card prose">
 <h2>我們在做什麼</h2>
-<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序，以及 JPG／HEIC 轉 PDF。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
+<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF，以及圖片壓縮。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
 <h2>我們的原則</h2>
 <ul>
 <li><strong>檔案不上傳：</strong>網站是純靜態網頁，沒有接收檔案的伺服器。</li>
@@ -281,7 +326,7 @@ out.push(['terms/index.html', layout({ slug: 'terms', title: `使用條款｜${B
   ld: [crumbs('使用條款', 'terms')],
   main: `<article class="card prose">
 <h2>1. 服務內容</h2>
-<p>${BRAND}（${BASE}，以下稱「本站」）由 Waiting Studio 提供，是免費的線上 PDF 工具，包括合併、分割、刪除頁面、旋轉、排序與圖片轉 PDF。所有檔案處理都在您的瀏覽器中完成，不會上傳到本站。使用本站即表示您同意本條款。</p>
+<p>${BRAND}（${BASE}，以下稱「本站」）由 Waiting Studio 提供，是免費的線上 PDF 工具，包括合併、分割、刪除頁面、旋轉、排序、壓縮、PDF 轉圖片、圖片轉 PDF 與圖片壓縮。所有檔案處理都在您的瀏覽器中完成，不會上傳到本站。使用本站即表示您同意本條款。</p>
 <h2>2. 您的責任</h2>
 <ul>
 <li>請只處理您有權使用的檔案，並遵守著作權及相關法令。</li>

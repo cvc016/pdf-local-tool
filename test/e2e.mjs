@@ -72,7 +72,7 @@ async function download(trigger) {
     if (fs.length) { await new Promise((r) => setTimeout(r, 200)); return { name: fs[0], bytes: await readFile(join(dir, fs[0])) }; }
     await new Promise((r) => setTimeout(r, 100));
   }
-  throw new Error('download timed out');
+  throw new Error('download timed out: ' + await page.evaluate(() => document.querySelector('#status')?.textContent + ' | ' + document.querySelector('#results')?.textContent));
 }
 const widths = (d) => d.getPages().map((p) => Math.round(p.getWidth()));
 async function open(slug) {
@@ -84,7 +84,7 @@ try {
   // Landing + SEO basics
   await open('');
   ok((await page.$$('h1')).length === 1 && (await page.title()).includes('PDF'), 'landing: one h1 + title');
-  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
+  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
     const r = await page.goto(BASE + s); ok(r.status() === 200, `GET ${s} → ${r.status()}`);
   }
 
@@ -206,6 +206,55 @@ try {
   ok(d.getPageCount() === 2, `image→pdf: 2 pages (${d.getPageCount()})`);
   const sz = d.getPages().map((p) => `${Math.round(p.getWidth())}x${Math.round(p.getHeight())}`);
   ok(sz.join() === '842x595,595x842', `image→pdf: A4 auto orientation (${sz})`);
+
+  // ---- PDF COMPRESS: image-heavy PDF gets smaller, page sizes kept
+  const E = await (async () => {
+    await page.setContent('<canvas id=c width=600 height=400></canvas>');
+    await page.evaluate(() => { const x = document.getElementById('c').getContext('2d'), d = x.createImageData(600, 400); for (let i = 0; i < d.data.length; i++) d.data[i] = i % 4 === 3 ? 255 : Math.random() * 255; x.putImageData(d, 0, 0); });
+    const noise = join(OUT, 'noise.png'); await page.screenshot({ path: noise, clip: { x: 8, y: 8, width: 600, height: 400 } });
+    const dd = await PDFDocument.create(); const im = await dd.embedPng(await readFile(noise));
+    for (let i = 0; i < 3; i++) dd.addPage([100 + i, 67]).drawImage(im, { x: 0, y: 0, width: 100 + i, height: 67 });
+    const f = join(OUT, 'e.pdf'); await writeFile(f, await dd.save()); return f;
+  })();
+  await open('compress-pdf/');
+  await (await page.$('#file')).uploadFile(E);
+  await page.waitForSelector('#work:not(.hidden)');
+  await page.click('input[name=level][value=max]');
+  r = await download(() => page.click('#go'));
+  d = await PDFDocument.load(r.bytes);
+  ok(d.getPageCount() === 3 && widths(d).join() === '100,101,102', `compress: 3 pages, sizes kept (${widths(d)})`);
+  ok(r.bytes.length < (await readFile(E)).length && /_已壓縮\.pdf$/.test(r.name), `compress: smaller (${r.bytes.length} < ${(await readFile(E)).length}) ${r.name}`);
+  // vector-only PDF: no auto download, warns
+  await page.click('#reset');
+  await (await page.$('#file')).uploadFile(A);
+  await page.waitForSelector('#work:not(.hidden)');
+  await page.click('#go');
+  await page.waitForFunction(() => /原檔/.test(document.querySelector('#status').textContent) || /完成/.test(document.querySelector('#status').textContent));
+  ok(await page.$eval('#results', (e) => e.children.length === 1), 'compress: result row shown for text PDF');
+
+  // ---- PDF → JPG: single page → jpg, all pages → zip
+  await open('pdf-to-jpg/');
+  await (await page.$('#file')).uploadFile(A);
+  await page.waitForSelector('#work:not(.hidden)');
+  await page.type('#ranges', '2');
+  r = await download(() => page.click('#go'));
+  ok(/第2頁\.jpg$/.test(r.name) && r.bytes[0] === 0xff && r.bytes[1] === 0xd8, `pdf→jpg: single page JPG (${r.name})`);
+  await page.$eval('#ranges', (e) => (e.value = ''));
+  r = await download(() => page.click('#go'));
+  ok(/\.zip$/.test(r.name) && r.bytes[0] === 0x50 && r.bytes[1] === 0x4b && (r.bytes.toString('latin1').match(/\.jpg/g) || []).length >= 3, `pdf→jpg: ZIP with 3 JPGs (${r.name})`);
+
+  // ---- IMAGE COMPRESS: resize to max side, single → jpg, multiple → zip
+  await open('compress-image/');
+  await (await page.$('#file')).uploadFile(png);
+  await page.waitForFunction(() => !document.querySelector('#go').disabled);
+  await page.select('#maxw', '800');
+  r = await download(() => page.click('#go'));
+  ok(/_壓縮\.jpg$/.test(r.name) && r.bytes[0] === 0xff, `image compress: single JPG (${r.name})`);
+  await (await page.$('#file2')).uploadFile(jpg);
+  await page.waitForFunction(() => document.querySelectorAll('#list li .thumb img').length === 2);
+  await page.select('#fmt', 'webp');
+  r = await download(() => page.click('#go'));
+  ok(/\.zip$/.test(r.name) && (r.bytes.toString('latin1').match(/\.(webp|jpg)/g) || []).length >= 2, `image compress: ZIP of 2 (${r.name})`);
 
   // mobile viewport renders without horizontal overflow
   await page.setViewport({ width: 375, height: 740, isMobile: true, hasTouch: true });
