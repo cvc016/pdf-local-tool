@@ -27,7 +27,7 @@ const ADS_HEAD = ADS ? `<meta name="google-adsense-account" content="${ADSENSE_C
 
 const ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#2563eb"/><path d="M11 12h10M11 17h10M11 22h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 const UP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>`;
-const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮', qr: 'QR Code' };
+const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮', imgconv: '圖片轉檔', qr: 'QR Code' };
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const strip = (s) => s.replace(/<[^>]+>/g, '');
 
@@ -64,6 +64,21 @@ ${drop(heic ? 'image/heic,image/heif,.heic,.heif,image/*' : 'image/*,.heic,.heif
     </fieldset>
   </div>
   <div class="actions"><button id="go" class="btn primary lg" disabled>轉換成 PDF 並下載</button></div>
+  ${statusBox}
+</div></div>`;
+
+const IMGACC = 'image/*,.webp,.avif,.bmp';
+const imgBatch = (big, small, fields, btn) => `<div class="card tool">
+<p id="webpNote" class="notice hidden">⚠️ 您目前的瀏覽器無法輸出 WebP，選擇 WebP 時會改存成 JPG。建議改用新版 Chrome、Edge、Firefox 或 Safari 17 以上。</p>
+${drop(IMGACC, true, big, small)}
+<div id="work" class="hidden">
+  <div class="toolbar"><strong id="summary" class="grow"></strong><button id="clear" class="btn sm">全部清除</button></div>
+  <ul id="list" class="flist"></ul>
+  <div style="margin-top:10px">${drop(IMGACC, true, '加入更多圖片', '', 'more', 'file2', true)}</div>
+  <div id="opts" class="opts" style="margin-top:14px">
+    ${fields}
+  </div>
+  <div class="actions"><button id="go" class="btn primary lg" disabled>${btn}</button></div>
   ${statusBox}
 </div></div>`;
 
@@ -133,21 +148,24 @@ const TOOLS = {
   <div class="actions"><button id="go" class="btn primary lg">轉成圖片並下載</button></div>
   ${statusBox}
 </div></div>` },
-  imgc: { js: 'imgcompress.js', html: () => `<div class="card tool">${drop('image/jpeg,image/png,image/webp,image/gif,image/bmp', true, '選擇或拖放圖片', '支援 JPG、PNG、WebP，可一次選多張')}
-<div id="work" class="hidden">
-  <div class="toolbar"><strong id="summary" class="grow"></strong><button id="clear" class="btn sm">全部清除</button></div>
-  <ul id="list" class="flist"></ul>
-  <div style="margin-top:10px">${drop('image/jpeg,image/png,image/webp,image/gif,image/bmp', true, '加入更多圖片', '', 'more', 'file2', true)}</div>
-  <div class="opts" style="margin-top:14px">
-    <fieldset><legend>壓縮設定</legend>
-      <label>輸出格式 <select id="fmt"><option value="jpg">JPG</option><option value="webp">WebP（更小）</option><option value="png">PNG（無損、保留透明）</option></select></label>
-      <label>品質 <input id="quality" type="range" min="30" max="95" value="75"> <span id="qv">75</span></label>
-      <label>最長邊 <select id="maxw"><option value="0">不縮小</option><option value="2560">2560 px</option><option value="1920" selected>1920 px</option><option value="1280">1280 px</option><option value="800">800 px</option></select></label>
+  imgc: { js: 'imgcompress.js', html: () => imgBatch('選擇或拖放圖片', '支援 JPG、PNG、WebP、GIF、BMP，可一次選多張', `<fieldset><legend>壓縮程度</legend>
+      <label><input type="radio" name="level" value="light"> 輕度（品質 90，畫質優先）</label>
+      <label><input type="radio" name="level" value="medium" checked> 中度（品質 75，建議）</label>
+      <label><input type="radio" name="level" value="strong"> 強烈（品質 55，檔案最小）</label>
+      <label><input type="radio" name="level" value="custom"> 自訂</label>
+      <div><label>品質 <input id="quality" type="range" min="10" max="100" value="75"> <span id="qv">75</span></label></div>
     </fieldset>
-  </div>
-  <div class="actions"><button id="go" class="btn primary lg" disabled>壓縮圖片並下載</button></div>
-  ${statusBox}
-</div></div>` },
+    <fieldset><legend>輸出</legend>
+      <label>格式 <select id="fmt"><option value="keep">保持原格式</option><option value="webp">轉 WebP（更小）</option><option value="jpg">轉 JPG（相容性最好）</option></select></label>
+      <label>最長邊 <select id="maxw"><option value="0">原尺寸</option><option value="2560">2560 px</option><option value="1920" selected>1920 px</option><option value="1280">1280 px</option><option value="800">800 px</option></select></label>
+      <p class="hint" style="margin:4px 0 0">PNG 是無損格式，「保持原格式」時品質不影響 PNG，只有縮小尺寸或轉 WebP／JPG 才會明顯變小。輸出不保留 EXIF（拍攝時間、GPS）。</p>
+    </fieldset>`, '壓縮圖片並下載') },
+  imgconv: { js: 'imgconvert.js', html: () => imgBatch('選擇或拖放圖片', '支援 PNG、JPG、WebP，以及瀏覽器能讀取的 GIF、BMP、AVIF', `<fieldset><legend>轉換設定</legend>
+      <label>輸出格式 <select id="fmt"><option value="webp">WebP</option><option value="jpg">JPG</option><option value="png">PNG（無損）</option></select></label>
+      <label id="qWrap">品質 <input id="quality" type="range" min="10" max="100" value="85"> <span id="qv">85</span></label>
+      <label id="bgWrap">透明背景填色 <input id="bg" type="color" value="#ffffff"></label>
+      <p class="hint" style="margin:4px 0 0">JPG 不支援透明，透明部分會填入背景色（預設白色）；PNG 與 WebP 會保留透明。</p>
+    </fieldset>`, '轉換並下載') },
   qr: { js: 'qr.js', html: () => `<div class="card tool"><form id="qrForm" class="qrwrap" autocomplete="off">
 <div class="qrleft opts">
   <fieldset><legend>內容類型</legend><div class="qtypes">

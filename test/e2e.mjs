@@ -84,7 +84,7 @@ try {
   // Landing + SEO basics
   await open('');
   ok((await page.$$('h1')).length === 1 && (await page.title()).includes('PDF'), 'landing: one h1 + title');
-  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'qr-code-generator/', 'blog/qr-code-never-expire/', 'blog/wifi-qr-code-for-shop/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
+  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'image-converter/', 'qr-code-generator/', 'blog/qr-code-never-expire/', 'blog/wifi-qr-code-for-shop/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
     const r = await page.goto(BASE + s); ok(r.status() === 200, `GET ${s} → ${r.status()}`);
   }
 
@@ -243,18 +243,65 @@ try {
   r = await download(() => page.click('#go'));
   ok(/\.zip$/.test(r.name) && r.bytes[0] === 0x50 && r.bytes[1] === 0x4b && (r.bytes.toString('latin1').match(/\.jpg/g) || []).length >= 3, `pdf→jpg: ZIP with 3 JPGs (${r.name})`);
 
-  // ---- IMAGE COMPRESS: resize to max side, single → jpg, multiple → zip
+  // ---- IMAGE COMPRESS: presets, format, max side, live sizes, zip
+  const magic = (b) => b[0] === 0xff && b[1] === 0xd8 ? 'jpg' : b[0] === 0x89 && b[1] === 0x50 ? 'png' : b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP' ? 'webp' : b[0] === 0x50 && b[1] === 0x4b ? 'zip' : '?';
+  const big = join(OUT, 'big.png'), alpha = join(OUT, 'alpha.png');
+  await page.setViewport({ width: 1600, height: 1200 });
+  await page.setContent('<canvas id=c width=1600 height=1200></canvas>');
+  await page.evaluate(() => { const x = document.getElementById('c').getContext('2d'); for (let i = 0; i < 4000; i++) { x.fillStyle = `hsl(${i % 360},70%,${30 + i % 40}%)`; x.beginPath(); x.arc(Math.random() * 1600, Math.random() * 1200, 5 + Math.random() * 40, 0, 7); x.fill(); } });
+  await page.screenshot({ path: big, clip: { x: 0, y: 0, width: 1600, height: 1200 } });
+  await page.setViewport({ width: 1200, height: 900 });
+  const b64 = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.fillStyle = 'rgba(0,0,0,0)'; x.fillRect(0, 0, 64, 64); x.fillStyle = 'red'; x.fillRect(16, 16, 32, 32); return c.toDataURL('image/png').split(',')[1]; });
+  await writeFile(alpha, Buffer.from(b64, 'base64'));
+  const bigSize = (await readFile(big)).length;
   await open('compress-image/');
-  await (await page.$('#file')).uploadFile(png);
-  await page.waitForFunction(() => !document.querySelector('#go').disabled);
-  await page.select('#maxw', '800');
+  await (await page.$('#file')).uploadFile(big);
+  await page.waitForFunction(() => /節省|增加/.test(document.querySelector('#list .res')?.textContent || ''));
+  await page.click('input[name=level][value=strong]');
+  ok(await page.$eval('#quality', (e) => e.value) === '55', 'image compress: 強烈 preset → quality 55');
+  await page.select('#fmt', 'jpg'); await page.select('#maxw', '800');
+  await page.waitForFunction(() => /JPG .*800×600/.test(document.querySelector('#list .res').textContent));
   r = await download(() => page.click('#go'));
-  ok(/_壓縮\.jpg$/.test(r.name) && r.bytes[0] === 0xff, `image compress: single JPG (${r.name})`);
-  await (await page.$('#file2')).uploadFile(jpg);
-  await page.waitForFunction(() => document.querySelectorAll('#list li .thumb img').length === 2);
+  ok(/_壓縮\.jpg$/.test(r.name) && magic(r.bytes) === 'jpg' && r.bytes.length < bigSize / 5, `image compress: JPG magic, ${bigSize} → ${r.bytes.length} B (${r.name})`);
+  await page.select('#fmt', 'keep');
+  await page.waitForFunction(() => /PNG/.test(document.querySelector('#list .res').textContent));
+  r = await download(() => page.click('#go'));
+  ok(magic(r.bytes) === 'png' && r.bytes.length < bigSize, `image compress: keep format → PNG, smaller (${r.bytes.length})`);
+  await (await page.$('#file2')).uploadFile(jpg, alpha);
   await page.select('#fmt', 'webp');
+  await page.waitForFunction(() => [...document.querySelectorAll('#list .res')].filter((e) => /WEBP/.test(e.textContent)).length === 3);
   r = await download(() => page.click('#go'));
-  ok(/\.zip$/.test(r.name) && (r.bytes.toString('latin1').match(/\.(webp|jpg)/g) || []).length >= 2, `image compress: ZIP of 2 (${r.name})`);
+  let zz = unzipSync(new Uint8Array(r.bytes)), zn = Object.keys(zz);
+  ok(magic(r.bytes) === 'zip' && zn.length === 3 && zn.every((n) => n.endsWith('.webp') && magic(Buffer.from(zz[n])) === 'webp'), `image compress: ZIP of 3 WebP (${zn})`);
+
+  // ---- IMAGE CONVERTER: png→jpg (white bg), →webp, →png, zip
+  await open('image-converter/');
+  await (await page.$('#file')).uploadFile(alpha, jpg);
+  await page.select('#fmt', 'jpg');
+  ok(await page.$eval('#bgWrap', (e) => !e.classList.contains('hidden')), 'converter: bg colour shown for JPG');
+  await page.waitForFunction(() => [...document.querySelectorAll('#list .res')].filter((e) => /JPG/.test(e.textContent)).length === 2);
+  r = await download(() => page.click('#go'));
+  zz = unzipSync(new Uint8Array(r.bytes)); zn = Object.keys(zz);
+  ok(zn.length === 2 && zn.every((n) => n.endsWith('.jpg') && magic(Buffer.from(zz[n])) === 'jpg'), `converter: ZIP of 2 JPG (${zn})`);
+  const px = await page.evaluate(async (u8) => { const bm = await createImageBitmap(new Blob([new Uint8Array(u8)])); const c = new OffscreenCanvas(bm.width, bm.height); const x = c.getContext('2d'); x.drawImage(bm, 0, 0); return [...x.getImageData(2, 2, 1, 1).data]; }, [...zz[zn.find((n) => n.startsWith('alpha'))]]);
+  ok(px[0] > 245 && px[1] > 245 && px[2] > 245, `converter: transparent → white bg (${px})`);
+  await page.click('#list li:nth-child(2) [data-act=rm]');
+  for (const f of ['webp', 'png']) {
+    await page.select('#fmt', f);
+    await page.waitForFunction((f) => document.querySelector('#list .res').textContent.includes(f.toUpperCase()), {}, f);
+    r = await download(() => page.click('#go'));
+    ok(r.name === `alpha.${f}` && magic(r.bytes) === f, `converter: png → ${f} magic ok (${r.name})`);
+  }
+
+  // mobile layout of the new/changed image tools
+  await page.setViewport({ width: 375, height: 740, isMobile: true, hasTouch: true });
+  for (const s of ['image-converter/', 'compress-image/']) {
+    await open(s); await (await page.$('#file')).uploadFile(big, alpha);
+    await page.waitForFunction(() => document.querySelectorAll('#list .res').length === 2 && [...document.querySelectorAll('#list .res')].every((e) => e.textContent));
+    ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `mobile ${s}: no horizontal overflow`);
+    await page.screenshot({ path: join(OUT, s.replace('/', '') + '-mobile.png'), fullPage: false });
+  }
+  await page.setViewport({ width: 1200, height: 900 });
 
   // ---- QR CODE: url → PNG + SVG; wifi payload; logo
   await open('qr-code-generator/');
