@@ -7,6 +7,9 @@ No GPL/LGPL/AGPL code is included (MuPDF.js and Ghostscript, which are AGPL,
 are intentionally NOT used). PDF compression, PDF-to-JPG and image compression
 (added 2026-11) use only PDF.js (Apache-2.0), pdf-lib (MIT), fflate (MIT) and
 the browser's built-in Canvas encoders; no new third-party code was added.
+The QR Code generator (added 2026-11) uses qrcode-generator 1.4.4 (MIT),
+wrapped unmodified as an ES module. "QR Code" is a registered trademark of
+DENSO WAVE INCORPORATED.
 
 | Component  | Version | License                     | Files                              |
 |------------|---------|-----------------------------|------------------------------------|
@@ -15,6 +18,7 @@ the browser's built-in Canvas encoders; no new third-party code was added.
 |            @pdf-lib/upng (MIT), tslib (Apache-2.0 header as shipped)        |
 | PDF.js (pdfjs-dist, legacy build) | 4.10.38 | Apache-2.0 | vendor/pdfjs/ (incl. cmaps, standard_fonts) |
 | fflate     | 0.8.3   | MIT                         | vendor/fflate/fflate.esm.js        |
+| qrcode-generator | 1.4.4 | MIT (Kazuhiko Arase)   | vendor/qrcode-generator/qrcode.esm.js |
 
 PDF.js's standard_fonts directory contains Foxit and Liberation fonts
 (see their license files in vendor/pdfjs/standard_fonts/: LICENSE_FOXIT,
@@ -331,3 +335,30 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+==============================================================================
+qrcode-generator 1.4.4  (https://github.com/kazuhikoarase/qrcode-generator)
+==============================================================================
+Copyright (c) 2009 Kazuhiko Arase
+
+URL: http://www.d-project.com/
+
+Licensed under the MIT license:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

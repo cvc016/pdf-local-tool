@@ -84,7 +84,7 @@ try {
   // Landing + SEO basics
   await open('');
   ok((await page.$$('h1')).length === 1 && (await page.title()).includes('PDF'), 'landing: one h1 + title');
-  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
+  for (const s of ['merge-pdf/', 'split-pdf/', 'delete-pdf-pages/', 'rotate-pdf/', 'reorder-pdf-pages/', 'jpg-to-pdf/', 'heic-to-pdf/', 'compress-pdf/', 'pdf-to-jpg/', 'compress-image/', 'qr-code-generator/', 'blog/qr-code-never-expire/', 'blog/wifi-qr-code-for-shop/', 'privacy/', 'about/', 'contact/', 'terms/', 'remove-ads/', 'sitemap.xml', 'robots.txt', 'THIRD_PARTY_LICENSES.txt']) {
     const r = await page.goto(BASE + s); ok(r.status() === 200, `GET ${s} → ${r.status()}`);
   }
 
@@ -255,6 +255,23 @@ try {
   await page.select('#fmt', 'webp');
   r = await download(() => page.click('#go'));
   ok(/\.zip$/.test(r.name) && (r.bytes.toString('latin1').match(/\.(webp|jpg)/g) || []).length >= 2, `image compress: ZIP of 2 (${r.name})`);
+
+  // ---- QR CODE: url → PNG + SVG; wifi payload; logo
+  await open('qr-code-generator/');
+  await page.type('#qUrl', 'waitingstudio.com/測試');
+  await page.waitForFunction(() => document.querySelector('#qrPreview svg'));
+  ok((await page.$eval('#qrText', (e) => e.textContent)) === 'https://waitingstudio.com/測試', 'qr: url payload with https');
+  r = await download(() => page.click('#dlPng'));
+  ok(/\.png$/.test(r.name) && r.bytes[0] === 0x89 && r.bytes[1] === 0x50, `qr: PNG download (${r.name})`);
+  r = await download(() => page.click('#dlSvg'));
+  ok(/\.svg$/.test(r.name) && /^<svg[\s\S]*<path/.test(r.bytes.toString()), `qr: SVG download (${r.name})`);
+  await page.click('input[name=qtype][value=wifi]');
+  await page.type('#wSsid', 'My;Net'); await page.type('#wPass', 'p@ss');
+  await page.waitForFunction(() => document.querySelector('#qrText').textContent.startsWith('WIFI:'));
+  ok((await page.$eval('#qrText', (e) => e.textContent)) === 'WIFI:T:WPA;S:My\\;Net;P:p@ss;;', 'qr: wifi payload escaped');
+  await (await page.$('#logo')).uploadFile(png);
+  await page.waitForFunction(() => document.querySelector('#qrPreview svg image'));
+  ok(true, 'qr: logo embedded');
 
   // mobile viewport renders without horizontal overflow
   await page.setViewport({ width: 375, height: 740, isMobile: true, hasTouch: true });

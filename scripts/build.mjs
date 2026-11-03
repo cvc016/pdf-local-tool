@@ -27,7 +27,7 @@ const ADS_HEAD = ADS ? `<meta name="google-adsense-account" content="${ADSENSE_C
 
 const ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="2" width="22" height="28" rx="4" fill="#2563eb"/><path d="M11 12h10M11 17h10M11 22h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 const UP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>`;
-const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮' };
+const NAV = { merge: '合併', split: '分割', delete: '刪除頁面', rotate: '旋轉', reorder: '排序', img: 'JPG 轉 PDF', heic: 'HEIC 轉 PDF', compress: '壓縮 PDF', pdf2img: 'PDF 轉 JPG', imgc: '圖片壓縮', qr: 'QR Code' };
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const strip = (s) => s.replace(/<[^>]+>/g, '');
 
@@ -148,6 +148,45 @@ const TOOLS = {
   <div class="actions"><button id="go" class="btn primary lg" disabled>壓縮圖片並下載</button></div>
   ${statusBox}
 </div></div>` },
+  qr: { js: 'qr.js', html: () => `<div class="card tool"><form id="qrForm" class="qrwrap" autocomplete="off">
+<div class="qrleft opts">
+  <fieldset><legend>內容類型</legend><div class="qtypes">
+    <label><input type="radio" name="qtype" value="url" checked> 網址</label>
+    <label><input type="radio" name="qtype" value="text"> 文字</label>
+    <label><input type="radio" name="qtype" value="wifi"> Wi-Fi</label>
+    <label><input type="radio" name="qtype" value="vcard"> 名片 vCard</label>
+    <label><input type="radio" name="qtype" value="line"> LINE</label>
+    <label><input type="radio" name="qtype" value="bank"> 轉帳資訊</label></div>
+  </fieldset>
+  <fieldset data-qtype="url"><legend>網址</legend><input id="qUrl" type="url" placeholder="https://example.com" inputmode="url"></fieldset>
+  <fieldset data-qtype="text" class="hidden"><legend>文字</legend><textarea id="qText" rows="4" placeholder="輸入任何文字"></textarea></fieldset>
+  <fieldset data-qtype="wifi" class="hidden"><legend>Wi-Fi</legend>
+    <label>網路名稱（SSID） <input id="wSsid" type="text"></label>
+    <label>密碼 <input id="wPass" type="text"></label>
+    <label>加密 <select id="wSec"><option value="WPA">WPA／WPA2／WPA3</option><option value="WEP">WEP</option><option value="nopass">無密碼</option></select></label>
+    <label><input id="wHidden" type="checkbox"> 隱藏的網路</label></fieldset>
+  <fieldset data-qtype="vcard" class="hidden"><legend>電子名片</legend>
+    <label>姓名 <input id="vName" type="text"></label><label>公司 <input id="vOrg" type="text"></label><label>職稱 <input id="vTitle" type="text"></label>
+    <label>手機 <input id="vTel" type="tel"></label><label>Email <input id="vEmail" type="email"></label><label>網站 <input id="vUrl" type="url"></label><label>地址 <input id="vAdr" type="text"></label></fieldset>
+  <fieldset data-qtype="line" class="hidden"><legend>LINE 加好友</legend>
+    <label>LINE ID、官方帳號 @ID 或邀請網址 <input id="lId" type="text" placeholder="例如 abc123 或 @shop"></label></fieldset>
+  <fieldset data-qtype="bank" class="hidden"><legend>轉帳資訊（純文字）</legend>
+    <label>銀行代碼 <input id="bCode" type="text" inputmode="numeric" placeholder="例如 822"></label><label>帳號 <input id="bAcct" type="text" inputmode="numeric"></label>
+    <label>戶名（選填） <input id="bName" type="text"></label><label>金額（選填） <input id="bAmt" type="text" inputmode="numeric"></label><label>備註（選填） <input id="bNote" type="text"></label>
+    <p class="hint" style="margin:4px 0 0">產生的是文字 QR Code，掃描後顯示帳號資訊供對方複製，不是銀行 App 的付款碼。</p></fieldset>
+  <fieldset><legend>外觀</legend>
+    <label>前景色 <input id="fg" type="color" value="#000000"></label> <label>背景色 <input id="bg" type="color" value="#ffffff"></label>
+    <label>容錯 <select id="ecl"><option value="L">L（7%）</option><option value="M" selected>M（15%）</option><option value="Q">Q（25%）</option><option value="H">H（30%）</option></select></label>
+    <label>Logo（選填） <input id="logo" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp"></label> <button id="logoClear" type="button" class="btn sm hidden">移除 Logo</button>
+    <p class="hint" style="margin:4px 0 0">放 Logo 時會自動使用最高容錯 H。</p></fieldset>
+</div>
+<div class="qrright">
+  <div id="qrPreview" class="qrprev" aria-label="QR Code 預覽"></div>
+  <label>PNG 尺寸 <select id="px"><option value="512">512 px</option><option value="1024" selected>1024 px</option><option value="2048">2048 px（印刷）</option></select></label>
+  <div class="actions"><button id="dlPng" type="button" class="btn primary qdl">下載 PNG</button><button id="dlSvg" type="button" class="btn qdl">下載 SVG（向量）</button></div>
+  ${statusBox}
+  <details><summary class="hint">QR Code 內容</summary><pre id="qrText" class="qrtext"></pre></details>
+</div></form></div>` },
 };
 
 function layout({ slug, title, desc, h1, lead, main, ld = [], js, suffix, noindex, badge = true, ogType = 'website' }) {
@@ -193,7 +232,7 @@ ${ADS_HEAD}${ld.length ? `<script type="application/ld+json">${JSON.stringify(ld
     <p><strong>檔案不會上傳：</strong>本站所有 PDF 與圖片處理都在您的瀏覽器中完成，不會傳送到任何伺服器；${ADS ? '本站以 Google AdSense 顯示固定橫幅廣告（無彈出視窗），廣告商可能使用 Cookie，詳見隱私權政策。' : '不使用 Cookie、不做追蹤分析、不載入第三方腳本。'}</p>
     <p><a href="${root}blog/">教學文章</a> · <a href="${root}privacy/">隱私權政策</a> · <a href="${root}about/">關於我們</a> · <a href="${root}contact/">聯絡我們</a> · <a href="${root}terms/">使用條款</a> · <a href="${root}remove-ads/">移除廣告</a> · <a href="${root}THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="${REPO}" rel="noopener">原始碼</a></p>
   </div>
-  <div><strong>PDF 工具</strong><ul>${toolPages.map((t) => `<li><a href="${root}${t.slug}/">${t.nav}</a></li>`).join('')}</ul></div>
+  <div><strong>免費工具</strong><ul>${toolPages.map((t) => `<li><a href="${root}${t.slug}/">${t.nav}</a></li>`).join('')}</ul></div>
 </div></footer>
 <script type="module" src="${root}assets/${js || 'common.js'}"></script>
 </body>
@@ -228,7 +267,7 @@ for (const p of toolPages) {
     ${p.extra}
     ${HOW(p.howWhat)}
     ${faqHtml(p.faq)}
-    <h2>其他 PDF 工具</h2>
+    <h2>其他免費工具</h2>
     <ul class="links">${toolPages.filter((x) => x !== p).map((x) => `<li><a href="../${x.slug}/">${x.nav}</a>：${x.short}</li>`).join('')}</ul>
   </article>`;
   const url = `${BASE}${p.slug}/`;
@@ -289,7 +328,7 @@ out.push(['about/index.html', layout({ slug: 'about', title: `關於我們｜${B
   ld: [crumbs('關於我們', 'about')],
   main: `<article class="card prose">
 <h2>我們在做什麼</h2>
-<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF，以及圖片壓縮。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
+<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF、圖片壓縮，以及永久有效的 QR Code 產生器。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
 <h2>我們的原則</h2>
 <ul>
 <li><strong>檔案不上傳：</strong>網站是純靜態網頁，沒有接收檔案的伺服器。</li>
