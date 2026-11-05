@@ -17,6 +17,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = 'https://waitingstudio.com/';
 const LASTMOD = new Date().toISOString().slice(0, 10);
 const REPO = 'https://github.com/cvc016/pdf-local-tool';
+const CHROME_EXT = 'https://chromewebstore.google.com/detail/agdlaedacpgaljedandnfmlomahkfjjd';
 const CONTACT = 'abbottabbott399@gmail.com';
 // ---- Google AdSense (OFF while empty: output has no ads and no third-party requests) ----
 // Set to your publisher id, e.g. 'ca-pub-1234567890123456' (or env ADSENSE_CLIENT=...).
@@ -313,7 +314,7 @@ ${ADS_HEAD}${ld.length ? `<script type="application/ld+json">${JSON.stringify(ld
   <div style="max-width:520px">
     <strong>${BRAND}</strong>
     <p><strong>檔案不會上傳：</strong>本站所有 PDF 與圖片處理都在您的瀏覽器中完成，不會傳送到任何伺服器；${ADS ? '本站以 Google AdSense 顯示固定橫幅廣告（無彈出視窗），廣告商可能使用 Cookie，詳見隱私權政策。' : '不使用 Cookie、不做追蹤分析、不載入第三方腳本。'}</p>
-    <p><a href="${root}blog/">教學文章</a> · <a href="${root}privacy/">隱私權政策</a> · <a href="${root}about/">關於我們</a> · <a href="${root}contact/">聯絡我們</a> · <a href="${root}terms/">使用條款</a> · <a href="${root}remove-ads/">移除廣告</a> · <a href="${root}THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="${REPO}" rel="noopener">原始碼</a></p>
+    <p><a href="${root}blog/">教學文章</a> · <a href="${root}privacy/">隱私權政策</a> · <a href="${root}about/">關於我們</a> · <a href="${root}contact/">聯絡我們</a> · <a href="${root}terms/">使用條款</a> · <a href="${root}remove-ads/">移除廣告</a> · <a href="${root}THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="${CHROME_EXT}" rel="noopener" target="_blank">Chrome 擴充功能</a> · <a href="${REPO}" rel="noopener">原始碼</a></p>
   </div>
   ${groupsT.map((g) => `<div><strong>${g.name}</strong><ul>${g.tools.map((t) => `<li><a href="${root}${t.slug}/">${t.nav}</a></li>`).join('')}</ul></div>`).join('')}
 </div></footer>
@@ -376,6 +377,9 @@ const homeFaq = [
 out.push(['index.html', layout({ slug: '', title: home.title, desc: home.desc, h1: home.h1, lead: home.lead,
   main: `${groupsT.map((g, i) => `<section class="tgroup" aria-labelledby="g${i}"><h2 id="g${i}" class="ghead">${g.ic} ${g.name}<small>${g.desc}</small></h2>
   <div class="tiles">${g.tools.map((t) => `<a class="tile" href="${t.slug}/"><div class="ic">${t.ic}</div><h3>${t.nav}</h3><p>${t.short}</p></a>`).join('')}</div></section>`).join('\n  ')}
+  <aside class="card" style="margin:1.25rem 0">
+  <p><strong>Chrome 擴充功能：</strong>也可安裝 <a href="${CHROME_EXT}" rel="noopener" target="_blank">Waiting PDF 本機工具</a>（合併、拆分、旋轉、圖片轉 PDF），一樣本機處理、檔案不上傳。</p>
+</aside>
   <article class="card prose">${WHY.replace(/\.\.\//g, './')}</article>
   ${AD}
   <article class="card prose">${HOW('合併、分割、旋轉等處理').replace(/\.\.\//g, './')}${faqHtml(homeFaq)}</article>`,
@@ -441,7 +445,7 @@ out.push(['about/index.html', layout({ slug: 'about', title: `關於我們｜${B
   ld: [crumbs('關於我們', 'about')],
   main: `<article class="card prose">
 <h2>我們在做什麼</h2>
-<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF、PDF 加頁碼、圖片壓縮、格式轉換、尺寸調整、加浮水印、字數統計、隨機密碼產生器，以及永久有效的 QR Code 產生器。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
+<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF、PDF 加頁碼、圖片壓縮、格式轉換、尺寸調整、加浮水印、字數統計、隨機密碼產生器，以及永久有效的 QR Code 產生器。另提供 <a href="${CHROME_EXT}" rel="noopener" target="_blank">Chrome 擴充功能</a>（Waiting PDF 本機工具），可在瀏覽器側邊使用合併、拆分、旋轉與圖片轉 PDF。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
 <h2>我們的原則</h2>
 <ul>
 <li><strong>檔案不上傳：</strong>網站是純靜態網頁，沒有接收檔案的伺服器。</li>
