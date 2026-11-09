@@ -22,7 +22,7 @@ const CONTACT = 'abbottabbott399@gmail.com';
 // ---- Google AdSense (OFF while empty: output has no ads and no third-party requests) ----
 // Set to your publisher id, e.g. 'ca-pub-1234567890123456' (or env ADSENSE_CLIENT=...).
 const ADSENSE_CLIENT = (process.env.ADSENSE_CLIENT ?? 'ca-pub-8133376999866232').trim();
-const ADSENSE_SLOT = (process.env.ADSENSE_SLOT ?? '').trim(); // optional display ad unit id (digits)
+const ADSENSE_SLOT = (process.env.ADSENSE_SLOT ?? '2128660140').trim(); // display ad unit id (digits); empty disables slot HTML
 if (ADSENSE_CLIENT && !/^ca-pub-\d{10,20}$/.test(ADSENSE_CLIENT)) throw new Error('ADSENSE_CLIENT must look like ca-pub-1234567890123456');
 const ADS = !!ADSENSE_CLIENT;
 const G = 'https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.gstatic.com https://*.adtrafficquality.google https://fundingchoicesmessages.google.com';
@@ -327,7 +327,7 @@ ${ADS_HEAD}${ld.length ? `<script type="application/ld+json">${JSON.stringify(ld
 // Ad slot: fixed banner inside the article, far from tool/download buttons; never on empty/utility pages.
 // No ad unit yet (ADSENSE_SLOT empty) => render nothing, so no empty/placeholder box.
 const AD = !ADSENSE_SLOT ? '' : ADS
-  ? `<aside class="ad-slot ad-live" data-ad-slot="article-banner" aria-label="廣告"><ins class="adsbygoogle" style="display:block;width:100%;height:90px" data-ad-client="${ADSENSE_CLIENT}"${ADSENSE_SLOT ? ` data-ad-slot="${ADSENSE_SLOT}"` : ''} data-full-width-responsive="false"></ins></aside>`
+  ? `<aside class="ad-slot ad-live" data-ad-slot="article-banner" aria-label="廣告"><ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px" data-ad-client="${ADSENSE_CLIENT}" data-ad-slot="${ADSENSE_SLOT}"></ins></aside>`
   : `<aside class="ad-slot" data-ad-slot="article-banner" aria-label="廣告">廣告</aside>`;
 const faqHtml = (faq) => `<h2>常見問題</h2>\n${faq.map(([q, a]) => `<h3>${q}</h3><p>${a}</p>`).join('\n')}`;
 const faqLd = (faq) => ({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: strip(a) } })) });

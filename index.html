@@ -51,7 +51,7 @@
 <li><strong>無彈出視窗：</strong>不跳出廣告視窗、不在下載前插播，也不加浮水印。</li>
 <li><strong>檔案不上傳：</strong>全部在本機處理，適合合約、報價單、身分證件掃描檔等敏感資料。</li>
 </ul></article>
-  
+  <aside class="ad-slot ad-live" data-ad-slot="article-banner" aria-label="廣告"><ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px" data-ad-client="ca-pub-8133376999866232" data-ad-slot="2128660140"></ins></aside>
   <article class="card prose"><h2>怎麼做到「不上傳」？運作原理說明</h2>
 <p>一般的線上 PDF 工具，會先把您的檔案上傳到對方的伺服器，處理完再讓您下載，檔案在網路上走了一趟，也會在別人的主機上停留一段時間。Waiting Studio 本機 PDF 的做法不同：整個網站只是一組靜態網頁，打開頁面時，瀏覽器會下載處理 PDF 所需的程式碼，之後合併、分割、旋轉等處理都由您裝置上的瀏覽器直接計算完成。</p>
 <p>我們使用開源函式庫 pdf-lib（MIT 授權）讀取與產生 PDF 結構，並用 Mozilla 開發的 PDF.js（Apache-2.0 授權）繪製頁面縮圖。這些程式碼都放在本站，不從第三方 CDN 載入；網頁也設定了內容安全政策（CSP），限制可載入的程式來源；處理檔案的程式碼不會把檔案傳到任何地方。處理完成的檔案是在瀏覽器記憶體中產生，再透過「下載」存到您的裝置，從頭到尾沒有任何上傳的動作。您可以打開瀏覽器的開發者工具，在「網路」分頁自行確認。</p><h2>常見問題</h2>

@@ -28,14 +28,13 @@ npm run test:live    # 對已部署網站執行同一測試
 第三方函式庫皆放在 `vendor/`（不使用 CDN），授權見 `THIRD_PARTY_LICENSES.txt`。
 
 ## 變現預留
-- 廣告：每個內容頁只有一個 `<aside class="ad-slot" data-ad-slot="article-banner">` 固定橫幅，位於說明文章中段，遠離工具與下載按鈕；工具卡片內、完成畫面、隱私／關於／移除廣告頁都沒有廣告（無彈窗；目前不載入任何廣告網路）。
+- 廣告：每個工具頁與首頁只有一個 `<aside class="ad-slot" data-ad-slot="article-banner">` 固定橫幅（728×90，AdSense slot `2128660140`），位於說明文章中段／工具區下方，遠離工具與下載按鈕；工具卡片內、完成畫面、隱私／關於／移除廣告／404／舊網址轉址頁都沒有廣告版位（無彈窗；不啟用 Auto ads）。
 - 移除廣告：`/remove-ads/` 貼上 Gumroad 授權碼 → `assets/unlock.js` 檢查格式並呼叫 `verifyWithGumroad()`（目前是 stub，見 TODO）→ 成功後寫入 localStorage（`adFreeLicense`），`html.ad-free` 隱藏廣告。
 - 若日後加入廣告網路，需同步調整 CSP 與隱私聲明。
 
-## Google AdSense（預設關閉）
+## Google AdSense
 
-`scripts/build.mjs` 頂端的 `ADSENSE_CLIENT`（預設 ca-pub-8133376999866232；環境變數 `ADSENSE_CLIENT=` 設為空字串時，輸出不含任何廣告程式與第三方請求，也不產生 `ads.txt`。
-設定為 `ca-pub-XXXXXXXXXXXXXXXX`（並可設定 `ADSENSE_SLOT` 為橫幅廣告單元 ID）後 `npm run build`，會：
+`scripts/build.mjs` 頂端的 `ADSENSE_CLIENT`（預設 `ca-pub-8133376999866232`）與 `ADSENSE_SLOT`（預設 `2128660140`，單元 waitingstudio-banner 728×90）。環境變數 `ADSENSE_CLIENT=` 或 `ADSENSE_SLOT=` 設為空字串可分別關閉腳本／版位。設定後 `npm run build` 會：
 
 - 在 `<head>` 加入 `google-adsense-account` meta 與 adsbygoogle.js（async，不阻塞），
 - 把固定橫幅版位（`.ad-slot`，保留 90px 高度避免版面位移）換成 `<ins class="adsbygoogle">`，
