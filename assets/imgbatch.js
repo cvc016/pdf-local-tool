@@ -24,7 +24,7 @@ export function canvasFor(w, h, type, bg = '#ffffff') {
  * opts(): current settings. render(rec, o) → { cv, type, quality } (canvas already drawn).
  * Output is recomputed live whenever files or settings change (#opts inputs).
  */
-export function initBatch({ suffix, zipName, opts, render, verb = '處理' }) {
+export function initBatch({ suffix, zipName, opts, render, verb = '處理', noGrow = false }) {
   const zone = $('#drop'), list = $('#list'), work = $('#work'), status = $('#status'), go = $('#go');
   let imgs = [], seq = 0, gen = 0, timer;
   setupDrop(zone, $('#file'), add, isImg);
@@ -67,12 +67,16 @@ export function initBatch({ suffix, zipName, opts, render, verb = '處理' }) {
     let t = blob?.type || type;
     if (!blob) throw new Error('編碼失敗');
     const w = cv.width, h = cv.height; cv.width = cv.height = 0;
+    // Never hand back something bigger than what the user gave us: keep the original file instead.
+    if (noGrow && blob.size >= rec.file.size) return { blob: rec.file, size: rec.file.size, type: rec.file.type, w: rec.img.naturalWidth, h: rec.img.naturalHeight, name: rec.file.name, kept: true };
     return { blob, size: blob.size, type: t, w, h, name: `${baseName(rec.file.name)}${suffix}.${EXT[t] || 'png'}` };
   }
   function showTotal() {
     const done = imgs.filter((r) => r.out && !r.bad); if (!done.length) return;
     const a = done.reduce((s, r) => s + r.file.size, 0), b = done.reduce((s, r) => s + r.out.size, 0), p = Math.round((1 - b / a) * 100);
-    setStatus(status, `合計 ${fmtSize(a)} → ${fmtSize(b)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）。按下方按鈕下載${done.length > 1 ? ' ZIP' : ''}，或在清單中個別下載。`, b > a ? 'err' : 'ok');
+    const kept = done.filter((r) => r.out.kept).length;
+    const keptMsg = !kept ? '' : kept === done.length ? (kept > 1 ? '這些圖片已經很精簡，再壓會變大，已保留原檔。' : '這張圖已經很精簡，再壓會變大，已保留原檔。') : `其中 ${kept} 張已經很精簡，再壓會變大，已保留原檔。`;
+    setStatus(status, kept === done.length ? `${keptMsg}可試試縮小「最長邊」或改用較低品質。` : `合計 ${fmtSize(a)} → ${fmtSize(b)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）。${keptMsg}按下方按鈕下載${done.length > 1 ? ' ZIP' : ''}，或在清單中個別下載。`, b > a ? 'err' : 'ok');
   }
   async function run() {
     const my = ++gen, o = opts();
@@ -86,8 +90,11 @@ export function initBatch({ suffix, zipName, opts, render, verb = '處理' }) {
       if (my !== gen) return false;
       const p = Math.round((1 - rec.out.size / rec.file.size) * 100);
       const res = rec.li.querySelector('.res');
-      res.textContent = `→ ${EXT[rec.out.type].toUpperCase()} ${fmtSize(rec.out.size)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）· ${rec.out.w}×${rec.out.h}`;
-      res.style.color = p >= 0 ? 'var(--ok, #15803d)' : 'var(--danger)';
+      if (rec.out.kept) { res.textContent = '這張圖已經很精簡，再壓會變大，已保留原檔'; res.style.color = 'var(--muted, #64748b)'; }
+      else {
+        res.textContent = `→ ${(EXT[rec.out.type] || 'img').toUpperCase()} ${fmtSize(rec.out.size)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）· ${rec.out.w}×${rec.out.h}`;
+        res.style.color = p >= 0 ? 'var(--ok, #15803d)' : 'var(--danger)';
+      }
       rec.li.querySelector('[data-act=dl]').classList.remove('hidden');
     }
     showTotal(); return true;

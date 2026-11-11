@@ -272,10 +272,17 @@ try {
   ok(magic(r.bytes) === 'png' && r.bytes.length < bigSize, `image compress: keep format → PNG, smaller (${r.bytes.length})`);
   await (await page.$('#file2')).uploadFile(jpg, alpha);
   await page.select('#fmt', 'webp');
-  await page.waitForFunction(() => [...document.querySelectorAll('#list .res')].filter((e) => /WEBP/.test(e.textContent)).length === 3);
+  await page.waitForFunction(() => [...document.querySelectorAll('#list .res')].filter((e) => /WEBP|保留原檔/.test(e.textContent)).length === 3);
   r = await download(() => page.click('#go'));
   let zz = unzipSync(new Uint8Array(r.bytes)), zn = Object.keys(zz);
-  ok(magic(r.bytes) === 'zip' && zn.length === 3 && zn.every((n) => n.endsWith('.webp') && magic(Buffer.from(zz[n])) === 'webp'), `image compress: ZIP of 3 WebP (${zn})`);
+  // Tiny 64×64 alpha.png is smaller than any WebP re-encode → original kept (never deliver a bigger file).
+  ok(magic(r.bytes) === 'zip' && zn.length === 3 && zn.every((n) => n === 'alpha.png' ? magic(Buffer.from(zz[n])) === 'png' : n.endsWith('.webp') && magic(Buffer.from(zz[n])) === 'webp'), `image compress: ZIP of WebP + kept original (${zn})`);
+  // Default 自動 at 原尺寸: PNG → WebP and real reduction; never larger than input.
+  await page.click('#clear'); await page.select('#fmt', 'auto'); await page.select('#maxw', '0');
+  await (await page.$('#file')).uploadFile(big);
+  await page.waitForFunction(() => /WEBP|保留原檔/.test(document.querySelector('#list .res')?.textContent || ''));
+  r = await download(() => page.click('#go'));
+  ok(magic(r.bytes) === 'webp' && r.bytes.length < bigSize, `image compress: auto @ original size → WebP smaller (${bigSize} → ${r.bytes.length})`);
 
   // ---- IMAGE CONVERTER: png→jpg (white bg), →webp, →png, zip
   await open('image-converter/');
