@@ -4,9 +4,10 @@ THIRD-PARTY SOFTWARE NOTICES AND LICENSES
 This site ("PDF 本機工具") bundles the following third-party software, served
 locally from /vendor (no CDN). All are under permissive licenses.
 No GPL/LGPL/AGPL code is included (MuPDF.js and Ghostscript, which are AGPL,
-are intentionally NOT used). PDF compression, PDF-to-JPG and image compression
+are intentionally NOT used). PDF compression and PDF-to-JPG
 (added 2026-11) use only PDF.js (Apache-2.0), pdf-lib (MIT), fflate (MIT) and
-the browser's built-in Canvas encoders; no new third-party code was added.
+the browser's built-in Canvas encoders. Image compression uses the Squoosh
+codecs listed below (all permissive), with Canvas as a fallback.
 The QR Code generator (added 2026-11) uses qrcode-generator 1.4.4 (MIT),
 wrapped unmodified as an ES module. "QR Code" is a registered trademark of
 DENSO WAVE INCORPORATED.
@@ -19,6 +20,15 @@ DENSO WAVE INCORPORATED.
 | PDF.js (pdfjs-dist, legacy build) | 4.10.38 | Apache-2.0 | vendor/pdfjs/ (incl. cmaps, standard_fonts) |
 | fflate     | 0.8.3   | MIT                         | vendor/fflate/fflate.esm.js        |
 | qrcode-generator | 1.4.4 | MIT (Kazuhiko Arase)   | vendor/qrcode-generator/qrcode.esm.js |
+| Image compression codecs (added 2026-11-11), bundled into vendor/squoosh/imgcodec.worker.js + *.wasm: |
+| @jsquash/jpeg | 1.6.0 | Apache-2.0 (wrapper); MozJPEG / libjpeg-turbo: IJG + BSD-3-Clause + Zlib | mozjpeg_enc.wasm |
+| @jsquash/webp | 1.5.0 | Apache-2.0 (wrapper); libwebp: BSD-3-Clause (Google) | webp_enc.wasm, webp_enc_simd.wasm |
+| @jsquash/oxipng | 2.3.0 | Apache-2.0 (wrapper); OxiPNG: MIT (Joshua Holmer), Rust deps MIT/Apache-2.0/Zlib | squoosh_oxipng_bg.wasm |
+| UPNG.js (upng-js) | 2.1.0 | MIT (Photopea)        | in imgcodec.worker.js              |
+| pako       | 1.0.11  | MIT AND Zlib                | in imgcodec.worker.js              |
+| wasm-feature-detect | 1.10.0 | Apache-2.0           | in imgcodec.worker.js              |
+Full license texts for the codecs: vendor/squoosh/licenses/. PNG palette
+quantization uses UPNG.js (MIT); libimagequant/pngquant (GPLv3) is NOT used.
 
 PDF.js's standard_fonts directory contains Foxit and Liberation fonts
 (see their license files in vendor/pdfjs/standard_fonts/: LICENSE_FOXIT,

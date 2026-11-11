@@ -57,16 +57,16 @@
       <div><label>品質 <input id="quality" type="range" min="10" max="100" value="75"> <span id="qv">75</span></label></div>
     </fieldset>
     <fieldset><legend>輸出</legend>
-      <label>格式 <select id="fmt"><option value="auto" selected>自動（建議：PNG 轉 WebP，其他保持原格式）</option><option value="keep">保持原格式</option><option value="webp">轉 WebP（更小）</option><option value="jpg">轉 JPG（相容性最好）</option></select></label>
+      <label>格式 <select id="fmt"><option value="auto" selected>自動（建議：原格式＋最佳壓縮）</option><option value="keep">保持原格式</option><option value="webp">轉 WebP（更小）</option><option value="jpg">轉 JPG（相容性最好）</option></select></label>
       <label>最長邊 <select id="maxw"><option value="0">原尺寸</option><option value="2560">2560 px</option><option value="1920" selected>1920 px</option><option value="1280">1280 px</option><option value="800">800 px</option></select></label>
-      <p class="hint" style="margin:4px 0 0">「自動」會把 PNG 轉成 WebP（保留透明）才能真的變小；選「保持原格式」時 PNG 是無損格式，品質設定對它無效。壓縮後若反而變大，會直接保留原檔。重新壓縮的輸出不保留 EXIF（拍攝時間、GPS）。</p>
+      <p class="hint" style="margin:4px 0 0">使用 MozJPEG、WebP、PNG 調色盤量化＋OxiPNG 等專業壓縮引擎，全部在您的瀏覽器內執行；PNG 會保留透明並減少顏色數（品質 100 為無損）。壓縮後若反而變大，會保留原檔並移除 EXIF／GPS。輸出不保留 EXIF（拍攝時間、GPS）。</p>
     </fieldset>
   </div>
   <div class="actions"><button id="go" class="btn primary lg" disabled>壓縮圖片並下載</button></div>
   <div id="status" class="status" role="status" aria-live="polite"></div>
 </div></div>
   <article class="card prose">
-    <p>手機拍的照片動輒 3～5 MB，上傳到報名系統、網拍、部落格或用 Email 寄送時常常太大。Waiting Studio 本機 PDF 的圖片壓縮使用瀏覽器內建的影像編碼功能，在您的裝置上重新壓縮照片：可選「輕度（品質 90）／中度（品質 75）／強烈（品質 55）」三種壓縮程度或用滑桿自訂品質，輸出可選自動（PNG 轉 WebP）、保持原格式、轉 WebP 或轉 JPG，並可把最長邊縮小到 2560、1920、1280 或 800 px。調整設定時，清單會即時顯示每張壓縮前後的大小與節省百分比；多張時打包成 ZIP 下載。</p>
+    <p>手機拍的照片動輒 3～5 MB，上傳到報名系統、網拍、部落格或用 Email 寄送時常常太大。Waiting Studio 本機 PDF 的圖片壓縮使用瀏覽器內建的影像編碼功能，在您的裝置上重新壓縮照片：可選「輕度（品質 90）／中度（品質 75）／強烈（品質 55）」三種壓縮程度或用滑桿自訂品質，輸出可選自動（保持原格式並用最佳壓縮）、保持原格式、轉 WebP 或轉 JPG，並可把最長邊縮小到 2560、1920、1280 或 800 px。調整設定時，清單會即時顯示每張壓縮前後的大小與節省百分比；多張時打包成 ZIP 下載。</p>
     <h2>圖片壓縮怎麼做？4 個步驟完成</h2>
     <ol class="steps"><li>選擇或拖曳圖片進來，可以一次選取多張。</li><li>選擇壓縮程度：輕度、中度（建議）、強烈，或選「自訂」拖曳品質滑桿。</li><li>選擇輸出格式（自動／保持原格式／轉 WebP／轉 JPG）與最長邊；清單會即時顯示每張的前後大小與節省比例。</li><li>按「壓縮圖片並下載」：單張直接下載，多張打包成 ZIP；也可以在清單中個別下載。</li></ol>
     <h2>為什麼用 Waiting Studio 本機 PDF？</h2>
@@ -84,7 +84,7 @@
 <ol class="steps"><li>用 Safari 開啟本頁，點選上方區域，選擇「照片圖庫」並勾選照片。</li><li>選擇壓縮程度與尺寸，等清單顯示壓縮後大小。</li><li>按「壓縮圖片並下載」，在下載提示中點選「下載」。</li><li>到「檔案」App 的「下載項目」開啟；單張圖片可再分享到「照片」。</li></ol>
 <p>Android 手機的操作方式相同：在 Chrome 開啟本頁，選取檔案時可以從「檔案」或「雲端硬碟」挑選，完成後檔案會存到「下載」資料夾。</p>
     <h2>壓縮程度怎麼選？</h2>
-<p><strong>輕度（品質 90）</strong>幾乎看不出差別，適合作品集、要再編修的照片；<strong>中度（品質 75）</strong>是大多數網站、報名系統、Email 的最佳平衡；<strong>強烈（品質 55）</strong>檔案最小，適合縮圖、聊天傳送，放大看可能出現色塊。對檔案大小影響最大的其實是「尺寸」：一張 4000×3000 的照片縮成最長邊 1920 px，像素只剩約四分之一。WebP 在相同畫質下通常比 JPG 更小，但少數舊系統不支援。PNG 是無損格式，品質設定對它無效，所以「自動」會把 PNG 轉成 WebP（保留透明）；若壓縮後反而比原檔大，本工具會直接保留原檔，不會給您更大的檔案。只想換格式不想壓縮，可以使用 <a href="../image-converter/">圖片格式轉換</a>；壓縮後若要合成 PDF，可以接著使用 <a href="../jpg-to-pdf/">JPG 轉 PDF</a>。</p>
+<p><strong>輕度（品質 90）</strong>幾乎看不出差別，適合作品集、要再編修的照片；<strong>中度（品質 75）</strong>是大多數網站、報名系統、Email 的最佳平衡；<strong>強烈（品質 55）</strong>檔案最小，適合縮圖、聊天傳送，放大看可能出現色塊。對檔案大小影響最大的其實是「尺寸」：一張 4000×3000 的照片縮成最長邊 1920 px，像素只剩約四分之一。WebP 在相同畫質下通常比 JPG 更小，但少數舊系統不支援。PNG 會用類似 pngquant 的調色盤量化減少顏色數，再用 OxiPNG 無損最佳化，通常可省 50～80% 且保留透明；JPG 使用 MozJPEG 編碼，比瀏覽器內建編碼更小。若壓縮後反而比原檔大，本工具會直接保留原檔（並移除 EXIF／GPS），不會給您更大的檔案。只想換格式不想壓縮，可以使用 <a href="../image-converter/">圖片格式轉換</a>；壓縮後若要合成 PDF，可以接著使用 <a href="../jpg-to-pdf/">JPG 轉 PDF</a>。</p>
     <h2>怎麼做到「不上傳」？運作原理說明</h2>
 <p>一般的線上 PDF 工具，會先把您的檔案上傳到對方的伺服器，處理完再讓您下載，檔案在網路上走了一趟，也會在別人的主機上停留一段時間。Waiting Studio 本機 PDF 的做法不同：整個網站只是一組靜態網頁，打開頁面時，瀏覽器會下載處理 PDF 所需的程式碼，之後用瀏覽器內建的影像解碼讀取圖片，在畫布上縮放後重新編碼成 JPG、WebP 或 PNG都由您裝置上的瀏覽器直接計算完成。</p>
 <p>我們使用開源函式庫 pdf-lib（MIT 授權）讀取與產生 PDF 結構，並用 Mozilla 開發的 PDF.js（Apache-2.0 授權）繪製頁面縮圖。這些程式碼都放在本站，不從第三方 CDN 載入；網頁也設定了內容安全政策（CSP），限制可載入的程式來源；處理檔案的程式碼不會把檔案傳到任何地方。處理完成的檔案是在瀏覽器記憶體中產生，再透過「下載」存到您的裝置，從頭到尾沒有任何上傳的動作。您可以打開瀏覽器的開發者工具，在「網路」分頁自行確認。</p>

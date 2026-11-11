@@ -16,7 +16,7 @@ const CHROME = process.env.CHROME || '/usr/bin/google-chrome';
 let BASE = process.env.BASE_URL;
 let server;
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.xml': 'application/xml', '.txt': 'text/plain; charset=utf-8', '.json': 'application/json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.wasm': 'application/wasm', '.xml': 'application/xml', '.txt': 'text/plain; charset=utf-8', '.json': 'application/json' };
 if (!BASE) {
   server = createServer(async (req, res) => {
     let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
@@ -277,12 +277,12 @@ try {
   let zz = unzipSync(new Uint8Array(r.bytes)), zn = Object.keys(zz);
   // Tiny 64×64 alpha.png is smaller than any WebP re-encode → original kept (never deliver a bigger file).
   ok(magic(r.bytes) === 'zip' && zn.length === 3 && zn.every((n) => n === 'alpha.png' ? magic(Buffer.from(zz[n])) === 'png' : n.endsWith('.webp') && magic(Buffer.from(zz[n])) === 'webp'), `image compress: ZIP of WebP + kept original (${zn})`);
-  // Default 自動 at 原尺寸: PNG → WebP and real reduction; never larger than input.
+  // Default 自動 at 原尺寸: PNG stays PNG (palette quantization + OxiPNG via WASM) and really shrinks.
   await page.click('#clear'); await page.select('#fmt', 'auto'); await page.select('#maxw', '0');
   await (await page.$('#file')).uploadFile(big);
-  await page.waitForFunction(() => /WEBP|保留原檔/.test(document.querySelector('#list .res')?.textContent || ''));
+  await page.waitForFunction(() => /PNG|保留原檔/.test(document.querySelector('#list .res')?.textContent || ''));
   r = await download(() => page.click('#go'));
-  ok(magic(r.bytes) === 'webp' && r.bytes.length < bigSize, `image compress: auto @ original size → WebP smaller (${bigSize} → ${r.bytes.length})`);
+  ok(magic(r.bytes) === 'png' && r.bytes.length < bigSize * 0.6, `image compress: auto @ original size → PNG much smaller (${bigSize} → ${r.bytes.length})`);
 
   // ---- IMAGE CONVERTER: png→jpg (white bg), →webp, →png, zip
   await open('image-converter/');

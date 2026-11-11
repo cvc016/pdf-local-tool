@@ -164,9 +164,9 @@ const TOOLS = {
       <div><label>品質 <input id="quality" type="range" min="10" max="100" value="75"> <span id="qv">75</span></label></div>
     </fieldset>
     <fieldset><legend>輸出</legend>
-      <label>格式 <select id="fmt"><option value="auto" selected>自動（建議：PNG 轉 WebP，其他保持原格式）</option><option value="keep">保持原格式</option><option value="webp">轉 WebP（更小）</option><option value="jpg">轉 JPG（相容性最好）</option></select></label>
+      <label>格式 <select id="fmt"><option value="auto" selected>自動（建議：原格式＋最佳壓縮）</option><option value="keep">保持原格式</option><option value="webp">轉 WebP（更小）</option><option value="jpg">轉 JPG（相容性最好）</option></select></label>
       <label>最長邊 <select id="maxw"><option value="0">原尺寸</option><option value="2560">2560 px</option><option value="1920" selected>1920 px</option><option value="1280">1280 px</option><option value="800">800 px</option></select></label>
-      <p class="hint" style="margin:4px 0 0">「自動」會把 PNG 轉成 WebP（保留透明）才能真的變小；選「保持原格式」時 PNG 是無損格式，品質設定對它無效。壓縮後若反而變大，會直接保留原檔。重新壓縮的輸出不保留 EXIF（拍攝時間、GPS）。</p>
+      <p class="hint" style="margin:4px 0 0">使用 MozJPEG、WebP、PNG 調色盤量化＋OxiPNG 等專業壓縮引擎，全部在您的瀏覽器內執行；PNG 會保留透明並減少顏色數（品質 100 為無損）。壓縮後若反而變大，會保留原檔並移除 EXIF／GPS。輸出不保留 EXIF（拍攝時間、GPS）。</p>
     </fieldset>`, '壓縮圖片並下載') },
   imgconv: { js: 'imgconvert.js', html: () => imgBatch('選擇或拖放圖片', '支援 PNG、JPG、WebP，以及瀏覽器能讀取的 GIF、BMP、AVIF', `<fieldset><legend>轉換設定</legend>
       <label>輸出格式 <select id="fmt"><option value="webp">WebP</option><option value="jpg">JPG</option><option value="png">PNG（無損）</option></select></label>

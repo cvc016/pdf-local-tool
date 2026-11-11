@@ -24,7 +24,7 @@ export function canvasFor(w, h, type, bg = '#ffffff') {
  * opts(): current settings. render(rec, o) → { cv, type, quality } (canvas already drawn).
  * Output is recomputed live whenever files or settings change (#opts inputs).
  */
-export function initBatch({ suffix, zipName, opts, render, verb = '處理', noGrow = false }) {
+export function initBatch({ suffix, zipName, opts, render, verb = '處理', noGrow = false, keepOriginal }) {
   const zone = $('#drop'), list = $('#list'), work = $('#work'), status = $('#status'), go = $('#go');
   let imgs = [], seq = 0, gen = 0, timer;
   setupDrop(zone, $('#file'), add, isImg);
@@ -62,13 +62,18 @@ export function initBatch({ suffix, zipName, opts, render, verb = '處理', noGr
   optsEl.addEventListener('input', () => schedule(350)); optsEl.addEventListener('change', () => schedule(150));
 
   async function one(rec, o) {
-    const { cv, type, quality } = render(rec, o);
-    let blob = await encode(cv, type, quality);
-    let t = blob?.type || type;
+    // render() returns either a drawn canvas to encode here, or an already-encoded { blob, w, h }.
+    const r = await render(rec, o);
+    let blob, w, h;
+    if (r.blob) ({ blob, w, h } = r);
+    else { blob = await encode(r.cv, r.type, r.quality); w = r.cv.width; h = r.cv.height; r.cv.width = r.cv.height = 0; }
     if (!blob) throw new Error('編碼失敗');
-    const w = cv.width, h = cv.height; cv.width = cv.height = 0;
+    const t = blob.type || r.type;
     // Never hand back something bigger than what the user gave us: keep the original file instead.
-    if (noGrow && blob.size >= rec.file.size) return { blob: rec.file, size: rec.file.size, type: rec.file.type, w: rec.img.naturalWidth, h: rec.img.naturalHeight, name: rec.file.name, kept: true };
+    if (noGrow && blob.size >= rec.file.size) {
+      const k = keepOriginal ? await keepOriginal(rec.file) : { blob: rec.file };
+      return { blob: k.blob, size: k.blob.size, type: rec.file.type, w: rec.img.naturalWidth, h: rec.img.naturalHeight, name: rec.file.name, kept: true, stripped: k.stripped };
+    }
     return { blob, size: blob.size, type: t, w, h, name: `${baseName(rec.file.name)}${suffix}.${EXT[t] || 'png'}` };
   }
   function showTotal() {
@@ -90,7 +95,7 @@ export function initBatch({ suffix, zipName, opts, render, verb = '處理', noGr
       if (my !== gen) return false;
       const p = Math.round((1 - rec.out.size / rec.file.size) * 100);
       const res = rec.li.querySelector('.res');
-      if (rec.out.kept) { res.textContent = '這張圖已經很精簡，再壓會變大，已保留原檔'; res.style.color = 'var(--muted, #64748b)'; }
+      if (rec.out.kept) { res.textContent = `這張圖已經很精簡，再壓會變大，已保留原檔${rec.out.stripped ? `（已移除 EXIF／GPS 等資訊，${fmtSize(rec.out.size)}）` : ''}`; res.style.color = 'var(--muted, #64748b)'; }
       else {
         res.textContent = `→ ${(EXT[rec.out.type] || 'img').toUpperCase()} ${fmtSize(rec.out.size)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）· ${rec.out.w}×${rec.out.h}`;
         res.style.color = p >= 0 ? 'var(--ok, #15803d)' : 'var(--danger)';

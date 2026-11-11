@@ -7,13 +7,19 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:codecs": "esbuild scripts/imgcodec-worker.mjs --bundle --format=esm --platform=browser --minify --legal-comments=eof --outfile=vendor/squoosh/imgcodec.worker.js && cp node_modules/@jsquash/jpeg/codec/enc/mozjpeg_enc.wasm node_modules/@jsquash/webp/codec/enc/webp_enc.wasm node_modules/@jsquash/webp/codec/enc/webp_enc_simd.wasm node_modules/@jsquash/oxipng/codec/pkg/squoosh_oxipng_bg.wasm vendor/squoosh/",
     "test": "node test/e2e.mjs",
     "test:live": "BASE_URL=https://waitingstudio.com/ node test/e2e.mjs"
   },
   "devDependencies": {
+    "@jsquash/jpeg": "^1.6.0",
+    "@jsquash/oxipng": "^2.3.0",
+    "@jsquash/webp": "^1.5.0",
+    "esbuild": "^0.28.2",
     "fflate": "0.8.3",
     "pdf-lib": "1.17.1",
     "puppeteer-core": "^24.0.0",
-    "qrcode-generator": "^1.4.4"
+    "qrcode-generator": "^1.4.4",
+    "upng-js": "^2.1.0"
   }
 }
