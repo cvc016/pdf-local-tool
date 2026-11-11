@@ -157,7 +157,19 @@ const TOOLS = {
   <div class="actions"><button id="go" class="btn primary lg">轉成圖片並下載</button></div>
   ${statusBox}
 </div></div>` },
-  imgc: { js: 'imgcompress.js', html: () => imgBatch('選擇或拖放圖片', '支援 JPG、PNG、WebP、GIF、BMP，可一次選多張', `<fieldset><legend>壓縮程度</legend>
+  imgc: { js: 'imgcompress.js', html: () => imgBatch('選擇或拖放圖片', '支援 JPG、PNG、WebP、GIF、BMP，可一次選多張', `<fieldset><legend>壓縮方式</legend>
+      <label><input type="radio" name="mode" value="q" checked> 依品質</label>
+      <label><input type="radio" name="mode" value="size"> 指定檔案大小（自動選品質）</label>
+    </fieldset>
+    <fieldset id="sizeBox" class="hidden"><legend>目標檔案大小（每張不超過）</legend>
+      <label><input type="radio" name="target" value="200000"> 200 KB</label>
+      <label><input type="radio" name="target" value="500000" checked> 500 KB</label>
+      <label><input type="radio" name="target" value="1000000"> 1 MB</label>
+      <label><input type="radio" name="target" value="2000000"> 2 MB</label>
+      <label style="white-space:nowrap"><input type="radio" name="target" value="custom"> 自訂 <input id="tcustom" type="number" min="1" step="any" inputmode="decimal" placeholder="例如 300" style="width:6em" aria-label="自訂目標大小"> <select id="tunit" aria-label="單位"><option>KB</option><option>MB</option></select></label>
+      <p class="hint" style="margin:4px 0 0">系統會在您選的「最長邊」與輸出格式下，自動找出不超過目標的最高品質（JPG／WebP 品質 10～95；PNG 從無損、256 色一路減到 2 色）。不會自動縮小尺寸或更換格式；最低品質仍超過目標時，會給您最小的結果並說明。以 1 KB＝1000 位元組計算，比較保守。</p>
+    </fieldset>
+    <fieldset id="qualityBox"><legend>壓縮程度</legend>
       <label><input type="radio" name="level" value="light"> 輕度（品質 90，畫質優先）</label>
       <label><input type="radio" name="level" value="medium" checked> 中度（品質 75，建議）</label>
       <label><input type="radio" name="level" value="strong"> 強烈（品質 55，檔案最小）</label>

@@ -61,27 +61,32 @@ export function initBatch({ suffix, zipName, opts, render, verb = '處理', noGr
   const optsEl = $('#opts');
   optsEl.addEventListener('input', () => schedule(350)); optsEl.addEventListener('change', () => schedule(150));
 
-  async function one(rec, o) {
-    // render() returns either a drawn canvas to encode here, or an already-encoded { blob, w, h }.
-    const r = await render(rec, o);
+  async function one(rec, o, cx) {
+    // render() returns a drawn canvas to encode here, an already-encoded { blob, w, h }, or { keep: true } (use the original).
+    // Optional: note (shown after the result), over (target size not reached).
+    const r = await render(rec, o, cx);
+    const extra = { note: r.note, over: r.over };
+    const kept = async (note) => {
+      const k = keepOriginal ? await keepOriginal(rec.file) : { blob: rec.file };
+      return { blob: k.blob, size: k.blob.size, type: rec.file.type, w: rec.img.naturalWidth, h: rec.img.naturalHeight, name: rec.file.name, kept: true, stripped: k.stripped, ...extra, note };
+    };
+    if (r.keep) return kept(r.note);
     let blob, w, h;
     if (r.blob) ({ blob, w, h } = r);
     else { blob = await encode(r.cv, r.type, r.quality); w = r.cv.width; h = r.cv.height; r.cv.width = r.cv.height = 0; }
     if (!blob) throw new Error('編碼失敗');
     const t = blob.type || r.type;
     // Never hand back something bigger than what the user gave us: keep the original file instead.
-    if (noGrow && blob.size >= rec.file.size) {
-      const k = keepOriginal ? await keepOriginal(rec.file) : { blob: rec.file };
-      return { blob: k.blob, size: k.blob.size, type: rec.file.type, w: rec.img.naturalWidth, h: rec.img.naturalHeight, name: rec.file.name, kept: true, stripped: k.stripped };
-    }
-    return { blob, size: blob.size, type: t, w, h, name: `${baseName(rec.file.name)}${suffix}.${EXT[t] || 'png'}` };
+    if (noGrow && blob.size >= rec.file.size) return kept(r.keptNote);
+    return { blob, size: blob.size, type: t, w, h, name: `${baseName(rec.file.name)}${suffix}.${EXT[t] || 'png'}`, ...extra };
   }
   function showTotal() {
     const done = imgs.filter((r) => r.out && !r.bad); if (!done.length) return;
     const a = done.reduce((s, r) => s + r.file.size, 0), b = done.reduce((s, r) => s + r.out.size, 0), p = Math.round((1 - b / a) * 100);
-    const kept = done.filter((r) => r.out.kept).length;
-    const keptMsg = !kept ? '' : kept === done.length ? (kept > 1 ? '這些圖片已經很精簡，再壓會變大，已保留原檔。' : '這張圖已經很精簡，再壓會變大，已保留原檔。') : `其中 ${kept} 張已經很精簡，再壓會變大，已保留原檔。`;
-    setStatus(status, kept === done.length ? `${keptMsg}可試試縮小「最長邊」或改用較低品質。` : `合計 ${fmtSize(a)} → ${fmtSize(b)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）。${keptMsg}按下方按鈕下載${done.length > 1 ? ' ZIP' : ''}，或在清單中個別下載。`, b > a ? 'err' : 'ok');
+    const kept = done.filter((r) => r.out.kept && !r.out.note).length, over = done.filter((r) => r.out.over).length;
+    const overMsg = over ? `${done.length > 1 ? `其中 ${over} 張` : '這張'}已盡力壓縮，仍高於目標大小，請看清單中的說明。` : '';
+    const keptMsg = overMsg + (!kept ? '' : kept === done.length ? (kept > 1 ? '這些圖片已經很精簡，再壓會變大，已保留原檔。' : '這張圖已經很精簡，再壓會變大，已保留原檔。') : `其中 ${kept} 張已經很精簡，再壓會變大，已保留原檔。`);
+    setStatus(status, kept === done.length && !over ? `${keptMsg}可試試縮小「最長邊」或改用較低品質。` : `合計 ${fmtSize(a)} → ${fmtSize(b)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）。${keptMsg}按下方按鈕下載${done.length > 1 ? ' ZIP' : ''}，或在清單中個別下載。`, b > a || over ? 'err' : 'ok');
   }
   async function run() {
     const my = ++gen, o = opts();
@@ -89,16 +94,21 @@ export function initBatch({ suffix, zipName, opts, render, verb = '處理', noGr
     for (const [k, rec] of todo.entries()) {
       if (my !== gen) return false;
       if (rec.outKey === o.key && rec.out) continue;
-      setStatus(status, `${verb}第 ${k + 1} / ${todo.length} 張…`);
-      try { rec.out = await one(rec, o); rec.outKey = o.key; }
-      catch (e) { rec.out = null; rec.li.querySelector('.res').textContent = e.message; continue; }
+      const head = `${verb}第 ${k + 1} / ${todo.length} 張…`;
+      setStatus(status, head);
+      const cx = { alive: () => my === gen, progress: (m) => { if (my === gen) setStatus(status, `${head}${m}`); } };
+      try { rec.out = await one(rec, o, cx); rec.outKey = o.key; }
+      catch (e) { if (my !== gen) return false; rec.out = null; rec.li.querySelector('.res').textContent = e.message; continue; }
       if (my !== gen) return false;
       const p = Math.round((1 - rec.out.size / rec.file.size) * 100);
-      const res = rec.li.querySelector('.res');
-      if (rec.out.kept) { res.textContent = `這張圖已經很精簡，再壓會變大，已保留原檔${rec.out.stripped ? `（已移除 EXIF／GPS 等資訊，${fmtSize(rec.out.size)}）` : ''}`; res.style.color = 'var(--muted, #64748b)'; }
-      else {
-        res.textContent = `→ ${(EXT[rec.out.type] || 'img').toUpperCase()} ${fmtSize(rec.out.size)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）· ${rec.out.w}×${rec.out.h}`;
-        res.style.color = p >= 0 ? 'var(--ok, #15803d)' : 'var(--danger)';
+      const res = rec.li.querySelector('.res'), note = rec.out.note ? `｜${rec.out.note}` : '';
+      if (rec.out.kept) {
+        res.textContent = rec.out.note ? `保留原檔 ${fmtSize(rec.out.size)}${rec.out.stripped ? '（已移除 EXIF／GPS 等資訊）' : ''}${note}`
+          : `這張圖已經很精簡，再壓會變大，已保留原檔${rec.out.stripped ? `（已移除 EXIF／GPS 等資訊，${fmtSize(rec.out.size)}）` : ''}`;
+        res.style.color = rec.out.over ? 'var(--danger)' : 'var(--muted, #64748b)';
+      } else {
+        res.textContent = `→ ${(EXT[rec.out.type] || 'img').toUpperCase()} ${fmtSize(rec.out.size)}（${p >= 0 ? '節省 ' + p : '增加 ' + -p}%）· ${rec.out.w}×${rec.out.h}${note}`;
+        res.style.color = p >= 0 && !rec.out.over ? 'var(--ok, #15803d)' : 'var(--danger)';
       }
       rec.li.querySelector('[data-act=dl]').classList.remove('hidden');
     }

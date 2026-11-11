@@ -285,6 +285,52 @@ try {
   r = await download(() => page.click('#go'));
   ok(magic(r.bytes) === 'png' && r.bytes.length < bigSize * 0.6, `image compress: auto @ original size → PNG much smaller (${bigSize} → ${r.bytes.length})`);
 
+  // ---- IMAGE COMPRESS: 指定檔案大小 (target size → best quality, dimensions & format never changed)
+  const FX = join(ROOT, 'test', 'fixtures');
+  const sizeRows = [];
+  await open('compress-image/');
+  const pick = (sel) => page.$eval(sel, (e) => { e.checked = true; e.dispatchEvent(new Event('change', { bubbles: true })); });
+  await pick('input[name=mode][value=size]');
+  ok(await page.$eval('#qualityBox', (e) => e.classList.contains('hidden')) && await page.$eval('#sizeBox', (e) => !e.classList.contains('hidden')), 'size mode: shows target box, hides quality');
+  await page.select('#fmt', 'auto'); await page.select('#maxw', '0');
+  for (const [file, kind, dims] of [['phone.jpg', 'jpg', '4032×2688'], ['screenshot.png', 'png', '2880×1800'], ['transparent.png', 'png', '1200×1200']]) {
+    const src = join(FX, file), srcSize = (await readFile(src)).length;
+    await page.click('#clear').catch(() => {});
+    await (await page.$('#file')).uploadFile(src);
+    for (const [label, bytes] of [['100 KB', 100000], ['500 KB', 500000], ['1 MB', 1000000]]) {
+      const t0 = Date.now();
+      if (bytes === 100000) { await page.$eval('#tcustom', (e) => { e.value = '100'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.select('#tunit', 'KB'); }
+      else await pick(`input[name=target][value="${bytes}"]`);
+      await page.waitForFunction((l) => { const t = document.querySelector('#list .res')?.textContent || ''; return t.includes(`目標 ${l}`) && !document.querySelector('#go').disabled && /合計|保留|高於/.test(document.querySelector('#status').textContent); }, { timeout: 180000 }, label);
+      const secs = ((Date.now() - t0) / 1000).toFixed(1);
+      const res = await page.$eval('#list .res', (e) => e.textContent);
+      r = await download(() => page.click('#go'));
+      const over = /仍高於目標/.test(res), kept = /保留原檔/.test(res);
+      const fits = r.bytes.length <= bytes;
+      const setting = (res.match(/品質 \d+|\d+ 色|無損/) || ['原檔'])[0];
+      ok(magic(r.bytes) === kind && (fits ? !over : over) && (kept || res.includes(dims)) && r.bytes.length <= srcSize,
+        `size mode ${file} → ${label}: ${r.bytes.length} B, ${setting}, ${fits ? 'fits' : 'over (hint shown)'}${kept ? ', original kept' : ''}, ${secs}s`);
+      if (bytes >= srcSize) ok(kept && /原檔已低於目標/.test(res), `size mode ${file} → ${label}: already under target → original kept`);
+      sizeRows.push([file, label, r.bytes.length, setting, kept ? '原尺寸（原檔）' : dims, fits, secs, res]);
+    }
+  }
+  // Explicit format is respected (no auto switch): screenshot as WebP @ 100 KB
+  await page.click('#clear'); await (await page.$('#file')).uploadFile(join(FX, 'screenshot.png'));
+  await page.select('#fmt', 'webp');
+  await page.$eval('#tcustom', (e) => { e.value = '100'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForFunction(() => /WEBP .*目標 100 KB/.test(document.querySelector('#list .res')?.textContent || ''), { timeout: 180000 });
+  r = await download(() => page.click('#go'));
+  ok(magic(r.bytes) === 'webp' && r.bytes.length <= 100000, `size mode: screenshot → WebP @ 100 KB (${r.bytes.length} B)`);
+  // Unreachable target: 1 KB on a photo → smallest result + clear hint, dimensions unchanged
+  await page.click('#clear'); await (await page.$('#file')).uploadFile(join(FX, 'phone.jpg'));
+  await page.select('#fmt', 'auto'); await page.select('#maxw', '1280');
+  await page.$eval('#tcustom', (e) => { e.value = '1'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForFunction(() => /目標 1 KB/.test(document.querySelector('#list .res')?.textContent || ''), { timeout: 180000 });
+  const hint = await page.$eval('#list .res', (e) => e.textContent);
+  ok(/已用最低品質（品質 10）壓到 .*仍高於目標 1 KB/.test(hint) && /1280×853/.test(hint) && /最長邊/.test(hint), `size mode: unreachable target → hint (${hint})`);
+  console.log('SIZE_TABLE ' + JSON.stringify(sizeRows));
+  await page.select('#maxw', '1920');
+
   // ---- IMAGE CONVERTER: png→jpg (white bg), →webp, →png, zip
   await open('image-converter/');
   await (await page.$('#file')).uploadFile(alpha, jpg);
