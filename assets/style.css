@@ -141,3 +141,9 @@ footer.site ul{list-style:none;padding:0;margin:6px 0}
 .pwlist{list-style:none;padding:0;margin:12px 0;display:grid;gap:8px}
 .pwlist li{display:flex;gap:8px;align-items:center;background:#f6f8fb;border-radius:10px;padding:8px 10px}
 .pwlist code.pw{flex:1;min-width:0;overflow-wrap:anywhere;font-size:17px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.prose table{border-collapse:collapse;width:100%;margin:10px 0 14px;font-size:14px;display:block;overflow-x:auto}
+.prose th,.prose td{border:1px solid #e3e7ef;padding:6px 8px;text-align:left;vertical-align:top;color:#384152}
+.prose th{background:#f5f7fb;font-weight:600}
+.prose dl.trouble dt{font-weight:600;margin-top:10px;color:#1f2937}
+.prose dl.trouble dd{margin:2px 0 0;color:#384152}
+.ad-slot.ad-live:has(ins[data-ad-status="unfilled"]){display:none}

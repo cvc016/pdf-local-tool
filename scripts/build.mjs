@@ -3,7 +3,7 @@
 import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BRAND, pages as toolPages, home, why as WHY, how as HOW, GROUPS } from './content.mjs';
+import { BRAND, pages as toolPages, home, GROUPS } from './content.mjs';
 // 依用途分組：排序 toolPages（首頁、導覽、頁尾、相關工具、sitemap 都照這個順序）
 const GI = Object.fromEntries(GROUPS.flatMap((g, i) => g.slugs.map((s, j) => [s, i * 100 + j])));
 for (const t of toolPages) if (!(t.slug in GI)) throw new Error('tool not in GROUPS: ' + t.slug);
@@ -11,7 +11,8 @@ toolPages.sort((a, b) => GI[a.slug] - GI[b.slug]);
 const bySlugT = Object.fromEntries(toolPages.map((t) => [t.slug, t]));
 const groupsT = GROUPS.map((g) => ({ ...g, tools: g.slugs.map((s) => bySlugT[s]).filter(Boolean) }));
 const groupOf = (slug) => groupsT.find((g) => g.slugs.includes(slug));
-import { posts, BLOG_DATE } from './blog.mjs';
+import { posts, BLOG_DATE, CATS, RETIRED } from './blog.mjs';
+import { extra as TX } from './toolextra.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = 'https://waitingstudio.com/';
@@ -314,7 +315,7 @@ ${ADS_HEAD}${ld.length ? `<script type="application/ld+json">${JSON.stringify(ld
   <div style="max-width:520px">
     <strong>${BRAND}</strong>
     <p><strong>檔案不會上傳：</strong>本站所有 PDF 與圖片處理都在您的瀏覽器中完成，不會傳送到任何伺服器；${ADS ? '本站以 Google AdSense 顯示固定橫幅廣告（無彈出視窗），廣告商可能使用 Cookie，詳見隱私權政策。' : '不使用 Cookie、不做追蹤分析、不載入第三方腳本。'}</p>
-    <p><a href="${root}blog/">教學文章</a> · <a href="${root}privacy/">隱私權政策</a> · <a href="${root}about/">關於我們</a> · <a href="${root}contact/">聯絡我們</a> · <a href="${root}terms/">使用條款</a> · <a href="${root}remove-ads/">移除廣告</a> · <a href="${root}THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="${CHROME_EXT}" rel="noopener" target="_blank">Chrome 擴充功能</a> · <a href="${REPO}" rel="noopener">原始碼</a></p>
+    <p><a href="${root}blog/">教學文章</a> · <a href="${root}privacy/">隱私權政策</a> · <a href="${root}about/">關於我們</a> · <a href="${root}contact/">聯絡我們</a> · <a href="${root}terms/">使用條款</a> · <a href="${root}THIRD_PARTY_LICENSES.txt">第三方授權</a> · <a href="${CHROME_EXT}" rel="noopener" target="_blank">Chrome 擴充功能</a> · <a href="${REPO}" rel="noopener">原始碼</a></p>
   </div>
   ${groupsT.map((g) => `<div><strong>${g.name}</strong><ul>${g.tools.map((t) => `<li><a href="${root}${t.slug}/">${t.nav}</a></li>`).join('')}</ul></div>`).join('')}
 </div></footer>
@@ -337,24 +338,30 @@ const crumbs = (name, slug) => ({ '@context': 'https://schema.org', '@type': 'Br
 const out = []; // [path, html]
 
 for (const p of toolPages) {
-  const t = TOOLS[p.tool];
+  const t = TOOLS[p.tool], x = TX[p.slug];
+  if (!x) throw new Error('no toolextra for ' + p.slug);
+  const faq = [...p.faq, ...x.faq];
+  if (faq.length < 2) throw new Error('too few FAQs: ' + p.slug);
+  const guides = posts.filter((b) => b.tool === p.slug || (b.alsoTools || []).includes(p.slug));
   const main = `${t.html()}
   <article class="card prose">
     ${p.intro}
     <h2>${p.kw}怎麼做？${p.steps.length} 個步驟完成</h2>
     <ol class="steps">${p.steps.map((s) => `<li>${s}</li>`).join('')}</ol>
-    ${WHY}
+    ${p.extra}
   </article>
   ${AD}
   <article class="card prose">
     ${p.mobile}
-    ${p.extra}
-    ${HOW(p.howWhat)}
-    ${faqHtml(p.faq)}
+    <h2>遇到問題怎麼辦？</h2>
+    <dl class="trouble">${x.trouble.map(([q, a]) => `<dt>${q}</dt><dd>${a}</dd>`).join('')}</dl>
+    <h2>檔案怎麼在本機處理？</h2>
+    <p>${x.local}</p>
+    ${faqHtml(faq)}
+    ${guides.length ? `<h2>相關教學</h2>
+    <ul class="links">${guides.map((b) => `<li><a href="../blog/${b.slug}/">${b.title}</a></li>`).join('')}</ul>` : ''}
     <h2>同類工具：${groupOf(p.slug).name}</h2>
-    <ul class="links">${groupOf(p.slug).tools.filter((x) => x !== p).map((x) => `<li><a href="../${x.slug}/">${x.nav}</a>：${x.short}</li>`).join('')}</ul>
-    <h2>其他免費工具</h2>
-    ${groupsT.filter((g) => g !== groupOf(p.slug)).map((g) => `<h3>${g.name}</h3><ul class="links">${g.tools.map((x) => `<li><a href="../${x.slug}/">${x.nav}</a>：${x.short}</li>`).join('')}</ul>`).join('\n    ')}
+    <ul class="links">${groupOf(p.slug).tools.filter((y) => y !== p).map((y) => `<li><a href="../${y.slug}/">${y.nav}</a>：${y.short}</li>`).join('')}</ul>
   </article>`;
   const url = `${BASE}${p.slug}/`;
   const ld = [
@@ -362,27 +369,50 @@ for (const p of toolPages) {
       applicationCategory: 'UtilitiesApplication', operatingSystem: 'Any（網頁瀏覽器）', browserRequirements: 'Requires JavaScript',
       inLanguage: 'zh-TW', isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'TWD' } },
     { '@context': 'https://schema.org', '@type': 'HowTo', name: `${p.kw}怎麼做`, inLanguage: 'zh-TW', step: p.steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, text: strip(s) })) },
-    faqLd(p.faq), crumbs(p.nav, p.slug),
+    faqLd(faq), crumbs(p.nav, p.slug),
   ];
   out.push([`${p.slug}/index.html`, layout({ slug: p.slug, title: `${p.kw}｜免費、不上傳、本機處理｜${BRAND}`, desc: p.desc, h1: p.h1, lead: p.lead, main, ld, js: t.js, suffix: t.suffix })]);
 }
 
 // Home
 const homeFaq = [
-  ['真的不會上傳我的檔案嗎？', '是的。本站是純前端的靜態網頁，PDF 的讀取與產生都在您的瀏覽器中完成，沒有任何接收檔案的伺服器。您可以用瀏覽器的開發者工具檢查，處理檔案時不會產生任何上傳請求。'],
-  ['需要註冊或付費嗎？', '不需要。所有功能免費、免註冊、無次數限制，也沒有彈出式廣告。'],
-  ['手機可以用嗎？', 'iPhone、iPad、Android 手機與平板都可以用，建議使用 Safari 或 Chrome。'],
-  ['支援有密碼的 PDF 嗎？', '目前不支援加密或設有開啟密碼的 PDF，請先用原本的軟體移除密碼後再使用。'],
+  ['真的不會上傳我的檔案嗎？', '是的。本站是 GitHub Pages 上的靜態網頁，沒有接收檔案的伺服器；PDF 與圖片的讀取、處理和產生都在您的瀏覽器中完成。您可以打開瀏覽器開發者工具的「網路」分頁，確認處理檔案時沒有任何上傳請求。'],
+  ['需要註冊或付費嗎？', '不需要。所有工具免費、免註冊，也沒有每日次數限制。網站以一個固定的橫幅廣告維持營運，不使用彈出式或插頁式廣告。'],
+  ['手機可以用嗎？', 'iPhone、iPad、Android 手機與平板都可以用，建議使用 Safari 或 Chrome。頁數很多或很大的檔案在手機上會比較慢，必要時請分批處理或改用電腦。'],
+  ['有哪些檔案處理不了？', '設有開啟密碼或加密的 PDF 目前不支援；HEIC 照片只有能解碼 HEIC 的瀏覽器（例如 Safari）才能讀取；GIF 動畫只會處理第一格。'],
+  ['發現錯誤要找誰？', '請來信 ' + CONTACT + '，或到 GitHub Issues 回報。回報時請描述使用的工具、裝置與瀏覽器，不要附上含個資的檔案。'],
 ];
+const homeMain = `<article class="card prose">
+<h2>常見情境：該用哪個工具？</h2>
+<ul>
+<li><strong>報名或求職網站說附件太大：</strong>用 <a href="compress-pdf/">壓縮 PDF</a>。掃描檔與照片型 PDF 效果最好（我們實測 5 頁掃描檔從 5.0 MB 壓到 854 KB）；Word 匯出的文字型 PDF 通常本來就小，詳見 <a href="blog/compress-pdf-under-size-limit/">PDF 太大無法上傳怎麼辦</a>。</li>
+<li><strong>手機拍了幾張收據或作業，要交一個 PDF：</strong>先用 <a href="compress-image/">圖片壓縮</a> 把最長邊縮到 1920 px，再用 <a href="jpg-to-pdf/">JPG 轉 PDF</a> 合成，檔案會比直接用原圖小很多。</li>
+<li><strong>只需要長篇 PDF 的其中幾頁：</strong>用 <a href="split-pdf/">PDF 分割</a> 輸入「1-3, 5」這樣的頁碼範圍。</li>
+<li><strong>掃描檔順序亂掉、有的頁面倒過來：</strong>用 <a href="reorder-pdf-pages/">PDF 頁面排序</a>，可以同時旋轉與刪頁；整理流程可參考 <a href="blog/organize-scanned-pdf/">掃描檔整理教學</a>。</li>
+<li><strong>要把身分證影本傳給店家或房東：</strong>用 <a href="watermark-image/">圖片加浮水印</a>，寫清楚用途與日期，見 <a href="blog/id-card-copy-watermark/">證件影本浮水印怎麼寫</a>。</li>
+<li><strong>店裡想讓客人掃碼連 Wi-Fi：</strong>用 <a href="qr-code-generator/">QR Code 產生器</a> 的 Wi-Fi 類型，產生的是不會過期的靜態 QR Code。</li>
+</ul>
+<h2>這個網站怎麼運作？</h2>
+<p>${BRAND} 是放在 GitHub Pages 上的靜態網站，沒有後端伺服器。打開工具時，處理檔案的程式會下載到您的瀏覽器執行：PDF 用 pdf-lib 與 PDF.js，圖片壓縮用 WebAssembly 版的 MozJPEG、libwebp 與 OxiPNG，QR Code 用 qrcode-generator，這些開源程式都放在本站，不從其他 CDN 載入（清單見 <a href="THIRD_PARTY_LICENSES.txt">第三方授權</a>）。您選擇的檔案只會讀進裝置的記憶體，處理結果直接下載，本站的程式不會把檔案交給任何第三方。</p>
+<p>網站以 Google AdSense 顯示一個固定的橫幅廣告來負擔營運，廣告由 Google 提供並可能使用 Cookie，說明見 <a href="privacy/">隱私權政策</a>。完整原始碼公開在 <a href="${REPO}" rel="noopener">GitHub</a>，任何人都可以檢查。</p>
+<h2>使用前要知道的限制</h2>
+<ul>
+<li>設有開啟密碼或加密的 PDF 目前無法處理。</li>
+<li><a href="compress-pdf/">壓縮 PDF</a> 採「頁面轉圖片」的方式，壓縮後文字無法選取，適合掃描檔，不適合需要複製文字的文件。</li>
+<li>HEIC 照片需要瀏覽器本身支援才能讀取，Windows 上的 Chrome、Edge 多半不行。</li>
+<li>能處理多大的檔案取決於裝置記憶體，手機遇到上百頁的掃描檔可能會變慢或失敗。</li>
+</ul>
+<p>想看更完整的操作說明，請到 <a href="blog/">教學文章</a>；網站由誰維護、怎麼聯絡，請見 <a href="about/">關於我們</a>。</p>
+</article>`;
 out.push(['index.html', layout({ slug: '', title: home.title, desc: home.desc, h1: home.h1, lead: home.lead,
   main: `${groupsT.map((g, i) => `<section class="tgroup" aria-labelledby="g${i}"><h2 id="g${i}" class="ghead">${g.ic} ${g.name}<small>${g.desc}</small></h2>
   <div class="tiles">${g.tools.map((t) => `<a class="tile" href="${t.slug}/"><div class="ic">${t.ic}</div><h3>${t.nav}</h3><p>${t.short}</p></a>`).join('')}</div></section>`).join('\n  ')}
   <aside class="card" style="margin:1.25rem 0">
   <p><strong>Chrome 擴充功能：</strong>也可安裝 <a href="${CHROME_EXT}" rel="noopener" target="_blank">Waiting PDF 本機工具</a>（合併、拆分、旋轉、圖片轉 PDF），一樣本機處理、檔案不上傳。</p>
 </aside>
-  <article class="card prose">${WHY.replace(/\.\.\//g, './')}</article>
+  ${homeMain}
   ${AD}
-  <article class="card prose">${HOW('合併、分割、旋轉等處理').replace(/\.\.\//g, './')}${faqHtml(homeFaq)}</article>`,
+  <article class="card prose">${faqHtml(homeFaq)}</article>`,
   ld: [{ '@context': 'https://schema.org', '@type': 'WebSite', name: BRAND, alternateName: 'Waiting Studio', url: BASE, inLanguage: 'zh-TW', publisher: { '@type': 'Organization', name: 'Waiting Studio', url: BASE, email: CONTACT } }, faqLd(homeFaq)] })]);
 
 // Privacy policy
@@ -394,7 +424,7 @@ out.push(['privacy/index.html', layout({ slug: 'privacy', title: `隱私權政�
 <h2>2. 本站目前收集的資料</h2>
 <p>本站是放在 GitHub Pages 的靜態網站，${ADS ? '<strong>不使用任何分析或追蹤工具</strong>，但會載入 Google AdSense 廣告程式（見第 4 節）。' : '目前<strong>不使用 Cookie、不使用任何分析或追蹤工具，也不載入第三方腳本</strong>。'}與一般網站相同，主機服務商 GitHub 可能為了安全與維運記錄連線資訊（例如 IP 位址、瀏覽器類型），相關處理請參考 <a href="https://docs.github.com/zh/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub 隱私聲明</a>。</p>
 <h2>3. 本機儲存（localStorage）</h2>
-<p>若您購買並啟用「移除廣告」，授權碼與啟用狀態會儲存在您瀏覽器的 localStorage 中，只存在您的裝置上。您可以在 <a href="../remove-ads/">移除廣告</a> 頁面清除，或清除瀏覽器的網站資料。</p>
+<p>本站的工具不會把您的檔案或文字存進瀏覽器。唯一會寫入 localStorage 的是預留的「移除廣告」授權功能（目前尚未開放購買）：日後若您啟用，授權碼與啟用狀態只會儲存在您的裝置上，清除瀏覽器的網站資料即可刪除。圖片壓縮工具第一次使用時，會從本站下載壓縮引擎（WebAssembly 檔案），瀏覽器可能把它快取起來，這些檔案不含任何個人資料。</p>
 <h2>4. 廣告與第三方 Cookie（Google AdSense）</h2>
 <p>${ADS ? '為了維持免費營運，本站使用 Google AdSense 在頁面中顯示一個固定的橫幅廣告版位' : '本站目前沒有任何廣告。我們計畫使用 Google AdSense 在頁面中顯示一個固定的橫幅廣告版位'}，不使用彈出式視窗、插頁式或覆蓋畫面的廣告，也不會放在工具與下載按鈕旁邊。${ADS ? '' : '啟用後適用以下說明：'}</p>
 <ul>
@@ -402,11 +432,11 @@ out.push(['privacy/index.html', layout({ slug: 'privacy', title: `隱私權政�
 <li>Google 使用廣告 Cookie，讓 Google 及其合作夥伴能根據使用者造訪本站和網路上其他網站的情形，放送合適的廣告。Google 如何使用這些資料，請見 <a href="https://policies.google.com/technologies/partner-sites?hl=zh-TW" rel="noopener">Google 如何使用合作夥伴網站或應用程式的資訊</a>。</li>
 <li>您可以前往 <a href="https://adssettings.google.com/" rel="noopener">Google 廣告設定</a> 停用個人化廣告，或前往 <a href="https://www.aboutads.info/choices/" rel="noopener">www.aboutads.info</a> 停用第三方廠商用於個人化廣告的 Cookie。</li>
 <li>來自歐洲經濟區、英國與瑞士的訪客，會看到 Google 認證同意管理平台（CMP）提供的 Cookie 同意訊息，可選擇是否同意，並隨時從該訊息重新設定。</li>
-<li>您也可以在瀏覽器設定中封鎖或刪除 Cookie，或 <a href="../remove-ads/">購買移除廣告</a>，啟用後本站不會在您的瀏覽器顯示廣告版位。</li>
+<li>您也可以在瀏覽器設定中封鎖或刪除 Cookie，或使用瀏覽器的追蹤保護功能。</li>
 </ul>
 <p>無論是否顯示廣告，您的 PDF 與圖片檔案都不會傳送給廣告商或任何第三方。</p>
 <h2>5. 付款</h2>
-<p>「移除廣告」的付款將由第三方平台（預計為 Gumroad）處理，本站不會接觸您的信用卡資料。驗證授權碼時，只會把授權碼送到該平台確認是否有效。</p>
+<p>本站目前沒有任何付費功能。若日後開放「移除廣告」，付款將由第三方平台（預計為 Gumroad）處理，本站不會接觸您的信用卡資料，屆時會先更新本政策。</p>
 <h2>6. 兒童隱私</h2>
 <p>本站不會刻意收集任何人的個人資料，包括兒童。</p>
 <h2>7. 政策變更與聯絡方式</h2>
@@ -441,22 +471,25 @@ out.push(['extension-privacy/index.html', layout({ slug: 'extension-privacy', ti
 </ul>
 </article>` })]);
 
-out.push(['about/index.html', layout({ slug: 'about', title: `關於我們｜${BRAND}`, desc: `關於 ${BRAND}：一個免費、免註冊、無次數限制、檔案不上傳的 PDF 工具網站。聯絡方式與回報問題管道。`, h1: `關於 ${BRAND}`, lead: '', badge: false,
-  ld: [crumbs('關於我們', 'about')],
+out.push(['about/index.html', layout({ slug: 'about', title: `關於我們｜${BRAND}`, desc: `關於 ${BRAND} 與 Waiting Studio：誰在維護這個網站、工具怎麼開發與測試、教學文章怎麼寫，以及聯絡與回報問題的方式。`, h1: `關於 ${BRAND}`, lead: '', badge: false,
+  ld: [crumbs('關於我們', 'about'), { '@context': 'https://schema.org', '@type': 'AboutPage', name: `關於我們｜${BRAND}`, url: `${BASE}about/`, inLanguage: 'zh-TW', publisher: { '@type': 'Organization', name: 'Waiting Studio', url: BASE, email: CONTACT } }],
   main: `<article class="card prose">
-<h2>我們在做什麼</h2>
-<p>${BRAND} 是一組在瀏覽器中執行的 PDF 工具：PDF 合併、分割、刪除頁面、旋轉、頁面排序、PDF 壓縮、PDF 轉 JPG、JPG／HEIC 轉 PDF、PDF 加頁碼、圖片壓縮、格式轉換、尺寸調整、加浮水印、字數統計、隨機密碼產生器，以及永久有效的 QR Code 產生器。另提供 <a href="${CHROME_EXT}" rel="noopener" target="_blank">Chrome 擴充功能</a>（Waiting PDF 本機工具），可在瀏覽器側邊使用合併、拆分、旋轉與圖片轉 PDF。我們相信處理合約、證件、報表這類文件時，不應該被迫把檔案上傳到陌生的伺服器，所以所有功能都在您的裝置上完成。</p>
-<h2>我們的原則</h2>
+<h2>誰在維護這個網站</h2>
+<p>${BRAND}（waitingstudio.com）由 Waiting Studio 製作與維護。Waiting Studio 是台灣的小型個人工作室，製作簡單、尊重隱私的實用工具；除了這個網站，也發行同樣本機處理的 <a href="${CHROME_EXT}" rel="noopener" target="_blank">Chrome 擴充功能「Waiting PDF 本機工具」</a>。網站在 2026 年 10 月上線，目前提供 ${toolPages.length} 個工具與 ${posts.length} 篇教學文章。</p>
+<h2>為什麼做這個網站</h2>
+<p>報帳、申請補助、投履歷、租屋時，最常要處理的正是身分證影本、薪資單、合約這類敏感文件；但多數線上 PDF 工具都要先把檔案上傳到對方的伺服器。我們想做一組「打開網頁就能用、檔案不離開裝置」的工具，所以整個網站是靜態網頁，所有處理都在您的瀏覽器中進行，原始碼公開在 <a href="${REPO}" rel="noopener">GitHub</a>，誰都可以檢查。</p>
+<h2>工具怎麼開發與測試</h2>
 <ul>
-<li><strong>檔案不上傳：</strong>網站是純靜態網頁，沒有接收檔案的伺服器。</li>
-<li><strong>免費、無次數限制、免註冊：</strong>打開就能用，不需要帳號。</li>
-<li><strong>無彈出視窗：</strong>未來若加入廣告，只會是一個固定的版位，不會跳出視窗，也不會出現在下載按鈕旁邊；不想看廣告可以 <a href="../remove-ads/">付費移除</a>。</li>
-<li><strong>開放原始碼與授權透明：</strong>只使用 MIT、Apache-2.0 等寬鬆授權的開源函式庫，清單見 <a href="../THIRD_PARTY_LICENSES.txt">第三方授權</a>。</li>
+<li>只使用 MIT、Apache-2.0、BSD 等寬鬆授權的開源函式庫（清單見 <a href="../THIRD_PARTY_LICENSES.txt">第三方授權</a>），全部放在本站，不從其他 CDN 載入。</li>
+<li>每次更新前，我們會用自動化測試在無頭瀏覽器中實際操作每一個工具：上傳範例檔、按下按鈕、檢查下載的 PDF 頁數與方向、圖片格式與大小，並確認處理過程沒有任何對外的上傳請求。</li>
+<li>使用者回報的問題會優先修正。例如曾有使用者回報圖片壓縮在「原尺寸」時檔案反而變大，我們因此改用 MozJPEG、PNG 量化等編碼器，並加上「不會比原檔大」的保護。</li>
 </ul>
+<h2>教學文章怎麼寫</h2>
+<p>教學文章由我們依照工具的實際行為撰寫：文中的按鈕名稱、選項與限制都對照程式碼確認；提到的檔案大小與壓縮比例，是我們用範例檔實際測出來的數字，並註明測試條件。各機關、網站的上傳限制可能變動，我們不會替特定網站背書，請以您使用的網站公告為準。發現內容錯誤或過時，歡迎來信指正，我們會更正並更新文章日期。</p>
+<h2>營運方式</h2>
+<p>工具免費、免註冊、沒有使用次數限制。為了負擔維護成本，網站透過 Google AdSense 顯示一個固定的橫幅廣告，不使用彈出式或插頁式廣告，也不會放在下載按鈕旁邊；廣告與 Cookie 的說明見 <a href="../privacy/">隱私權政策</a>。本站不做任何分析追蹤。</p>
 <h2>聯絡我們</h2>
-<p>發現錯誤、有功能建議，或任何問題，歡迎來信 <a href="mailto:${CONTACT}">${CONTACT}</a>，或到 <a href="${REPO}/issues" rel="noopener">GitHub Issues</a> 留言。更多資訊請見 <a href="../contact/">聯絡我們</a>。</p>
-<h2>關於 Waiting Studio</h2>
-<p>Waiting Studio（waitingstudio.com）是一個位於台灣的個人工作室，專注製作簡單、尊重隱私的實用網頁工具。本站的工具與教學文章皆為自行撰寫，內容會隨著使用者回饋持續更新。</p>
+<p>錯誤回報、功能建議或任何問題，請來信 <a href="mailto:${CONTACT}">${CONTACT}</a>，或到 <a href="${REPO}/issues" rel="noopener">GitHub Issues</a> 留言。更多說明請見 <a href="../contact/">聯絡我們</a>。</p>
 </article>` })]);
 
 // Contact
@@ -473,6 +506,13 @@ out.push(['contact/index.html', layout({ slug: 'contact', title: `聯絡我們�
 <li>畫面上出現的錯誤訊息或截圖。</li>
 </ul>
 <p><strong>請不要寄送含有個人資料的檔案。</strong>本站的工具全程在您的瀏覽器處理檔案，我們不需要、也不會要求您提供原始檔；如需重現問題，請改用不含敏感資料的範例檔。</p>
+<h2>我們會怎麼處理您的來信</h2>
+<ul>
+<li>錯誤回報：我們會先用不含個資的範例檔重現問題，修正後在回信中說明改了什麼；影響較大的修正也會反映在相關工具頁與教學文章。</li>
+<li>內容指正：教學文章中的步驟、數字或外部規定（例如上傳限制）若有錯誤或過時，請告訴我們出處，確認後會更正並更新文章日期。</li>
+<li>功能建議：會列入待辦評估，但不保證一定實作；本站只做能在瀏覽器本機完成、不需要上傳檔案的功能。</li>
+</ul>
+<p>您的 Email 地址只用來回覆您的問題，不會加入任何名單或提供給第三方。</p>
 <h2>其他管道</h2>
 <p>熟悉 GitHub 的使用者也可以到 <a href="${REPO}/issues" rel="noopener">GitHub Issues</a> 公開回報（請勿在公開留言中放個人資料）。</p>
 </article>` })]);
@@ -492,7 +532,7 @@ out.push(['terms/index.html', layout({ slug: 'terms', title: `使用條款｜${B
 <h2>3. 免責聲明</h2>
 <p>本站依「現況」提供，不保證完全沒有錯誤或永遠可用。對於因使用或無法使用本站所造成的資料遺失或其他損害，在法律允許的範圍內，本站不負賠償責任。</p>
 <h2>4. 廣告與移除廣告</h2>
-<p>本站可能透過 Google AdSense 顯示固定橫幅廣告，不使用彈出式廣告。您可以一次性購買「移除廣告」授權，授權只儲存在您的瀏覽器中；清除網站資料或更換瀏覽器後需重新輸入授權碼。付款由第三方平台處理，退款依該平台規定。廣告與 Cookie 的說明請見 <a href="../privacy/">隱私權政策</a>。</p>
+<p>本站透過 Google AdSense 顯示固定橫幅廣告，不使用彈出式或插頁式廣告。廣告內容由 Google 提供，本站不為廣告主的商品或服務背書。付費移除廣告的功能目前尚未開放；開放時會更新本條款。廣告與 Cookie 的說明請見 <a href="../privacy/">隱私權政策</a>。</p>
 <h2>5. 智慧財產權</h2>
 <p>本站網頁內容與教學文章著作權屬 Waiting Studio 所有；程式碼依 MIT 授權公開於 <a href="${REPO}" rel="noopener">GitHub</a>，使用的第三方函式庫依其各自授權（見 <a href="../THIRD_PARTY_LICENSES.txt">第三方授權</a>）。</p>
 <h2>6. 條款變更與準據法</h2>
@@ -502,7 +542,7 @@ out.push(['terms/index.html', layout({ slug: 'terms', title: `使用條款｜${B
 // Remove ads (license key unlock)
 out.push(['remove-ads/index.html', layout({ slug: 'remove-ads', title: `移除廣告｜${BRAND}`, desc: `購買 ${BRAND} 移除廣告授權後，貼上授權碼即可在此裝置隱藏廣告版位。`, h1: '移除廣告', lead: '一次購買，貼上授權碼即可在此瀏覽器隱藏廣告版位。', badge: false, noindex: true, js: 'unlock.js',
   main: `<div class="card">
-<p><strong>付費方案即將推出。</strong>目前本站沒有任何廣告。開放後，您可以在 Gumroad 購買，並把收到的授權碼貼在下方。</p>
+<p><strong>付費移除廣告目前尚未開放購買。</strong>開放前本頁無法驗證授權碼；開放時會在 <a href="../about/">關於我們</a> 公告。</p>
 <form id="unlockForm" class="opts" autocomplete="off">
   <label for="licenseKey" style="display:block">授權碼</label>
   <input id="licenseKey" type="text" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" spellcheck="false">
@@ -524,6 +564,7 @@ for (const p of posts) {
   const slug = `blog/${p.slug}`, url = `${BASE}${slug}/`;
   if (!toolBySlug[p.tool]) throw new Error(`blog ${p.slug}: unknown tool ${p.tool}`);
   const main = `<article class="card prose">
+    <p class="hint">發布：${p.date || BLOG_DATE}${p.updated ? `　更新：${p.updated}` : ''}　作者：Waiting Studio</p>
     ${p.answer}
     <div class="actions"><a class="btn primary lg" href="../../${p.tool}/">開啟「${p.toolName}」工具</a></div>
     <h2>${p.stepsTitle}</h2>
@@ -547,10 +588,15 @@ for (const p of posts) {
   ];
   out.push([`${slug}/index.html`, layout({ slug, title: `${p.title}｜${BRAND}`, desc: p.desc, h1: p.h1, lead: '', main, ld, badge: false, ogType: 'article' })]);
 }
-out.push(['blog/index.html', layout({ slug: 'blog', title: `PDF 教學文章｜${BRAND}`, desc: `${BRAND} 教學文章：手機合併 PDF、iPhone 照片轉 PDF、刪除 PDF 頁面、PDF 旋轉後儲存等操作說明，全部在瀏覽器本機處理、檔案不上傳。`, h1: 'PDF 教學文章', lead: '一步一步說明常見的 PDF 操作，手機與電腦都適用。', badge: false,
+out.push(['blog/index.html', layout({ slug: 'blog', title: `教學文章：PDF、圖片與實用工具｜${BRAND}`, desc: `${BRAND} 教學文章：PDF 太大怎麼壓、照片怎麼縮小、PNG／JPG／WebP 怎麼選、掃描檔整理、證件影本浮水印、永久 QR Code 等，附實測數據，全部以瀏覽器本機處理。`, h1: '教學文章', lead: '依照工具實際行為撰寫，附我們實測的數據；發現錯誤歡迎來信指正。', badge: false,
   ld: [{ '@context': 'https://schema.org', '@type': 'Blog', name: `${BRAND} 教學文章`, url: `${BASE}blog/`, inLanguage: 'zh-TW', publisher: org,
-    blogPost: posts.map((p) => ({ '@type': 'BlogPosting', headline: p.title, url: `${BASE}blog/${p.slug}/`, datePublished: p.date || BLOG_DATE })) }, blogCrumbs([])],
-  main: `<section class="tiles" aria-label="文章列表">${posts.map((p) => `<a class="tile" href="${p.slug}/"><h2>${p.title}</h2><p>${p.desc}</p></a>`).join('')}</section>` })]);
+    blogPost: posts.map((p) => ({ '@type': 'BlogPosting', headline: p.title, url: `${BASE}blog/${p.slug}/`, datePublished: p.date || BLOG_DATE, dateModified: p.updated || p.date || BLOG_DATE })) }, blogCrumbs([])],
+  main: CATS.map(([c, name]) => `<section class="tgroup" aria-label="${name}"><h2 class="ghead">${name}</h2><div class="tiles">${posts.filter((p) => p.cat === c).map((p) => `<a class="tile" href="${p.slug}/"><h3>${p.title}</h3><p>${p.desc}</p></a>`).join('')}</div></section>`).join('\n') })]);
+
+// Retired posts (merged into stronger articles): noindex redirect stubs, not in sitemap.
+for (const [from, to] of Object.entries(RETIRED)) {
+  out.push([`blog/${from}/index.html`, `<!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="robots" content="noindex"><link rel="canonical" href="${BASE}blog/${to}/"><meta http-equiv="refresh" content="0; url=../${to}/"><title>文章已合併</title></head><body><p>這篇文章已合併到 <a href="../${to}/">${postBySlug[to].title}</a>。</p></body></html>\n`]);
+}
 
 // Old URLs from the first release -> redirect stubs (not in sitemap).
 const REDIRECTS = { 'pdf-merge': 'merge-pdf', 'pdf-split': 'split-pdf', 'pdf-organize': 'reorder-pdf-pages', 'image-to-pdf': 'jpg-to-pdf' };

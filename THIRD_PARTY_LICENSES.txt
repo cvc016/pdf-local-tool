@@ -1,7 +1,7 @@
 THIRD-PARTY SOFTWARE NOTICES AND LICENSES
 =========================================
 
-This site ("PDF 本機工具") bundles the following third-party software, served
+This site ("Waiting Studio 本機 PDF", waitingstudio.com) bundles the following third-party software, served
 locally from /vendor (no CDN). All are under permissive licenses.
 No GPL/LGPL/AGPL code is included (MuPDF.js and Ghostscript, which are AGPL,
 are intentionally NOT used). PDF compression and PDF-to-JPG

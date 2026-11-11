@@ -107,7 +107,8 @@ try {
     ok(info.h1 === 1 && info.ads === 0, `blog ${b.slug}: one h1, no ad slot`);
     ok(['Article', 'HowTo', 'FAQPage', 'BreadcrumbList'].every((t) => info.types.includes(t)), `blog ${b.slug}: JSON-LD ${info.types}`);
     ok(info.toolLink, `blog ${b.slug}: links to tool ${b.tool}`);
-    ok(info.cjk >= 1200, `blog ${b.slug}: ${info.cjk} 字 (>= 1200)`);
+    // 800: substance over padding (AdSense thin-content fix 2026-11)
+    ok(info.cjk >= 800, `blog ${b.slug}: ${info.cjk} 字 (>= 800)`);
     ok(!/文檔|在線|最快|已服務/.test(info.html), `blog ${b.slug}: Taiwan wording, no unverified claims`);
     for (const u of [...new Set(info.brokenLinks)].filter((u) => !/\.txt$/.test(u))) {
       const st = await page.evaluate(async (x) => (await fetch(x)).status, u);

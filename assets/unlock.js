@@ -36,7 +36,7 @@ form.addEventListener('submit', async (e) => {
     msg.textContent = '✓ 驗證成功，已移除廣告。'; msg.className = 'status ok';
   } else {
     msg.textContent = r.reason === 'not_configured' || r.reason === 'not_implemented'
-      ? '付費方案尚未開放，目前無法驗證授權碼。（本站現在也沒有任何廣告）'
+      ? '付費方案尚未開放，目前無法驗證授權碼。'
       : '授權碼驗證失敗，請確認是否輸入正確。';
     msg.className = 'status err';
   }
